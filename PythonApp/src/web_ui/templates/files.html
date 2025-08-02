@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Sensor Recording Dashboard - File Viewer</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Socket.IO for real-time communication -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --dark-bg: #34495e;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--dark-bg));
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: white !important;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .file-browser {
+            height: 600px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        
+        .file-item {
+            cursor: pointer;
+            padding: 10px 15px;
+            border-bottom: 1px solid #f8f9fa;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        
+        .file-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .file-item.selected {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .file-icon {
+            width: 24px;
+            text-align: center;
+            margin-right: 10px;
+        }
+        
+        .file-details {
+            flex-grow: 1;
+        }
+        
+        .file-actions {
+            margin-left: auto;
+        }
+        
+        .breadcrumb-nav {
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .file-preview {
+            height: 400px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8f9fa;
+        }
+        
+        .file-preview img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        .file-preview video {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        .file-preview .text-content {
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            height: 100%;
+            overflow-y: auto;
+            text-align: left;
+        }
+        
+        .file-info-table {
+            font-size: 0.9em;
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
+        .search-box input {
+            padding-left: 35px;
+        }
+        
+        .file-size {
+            color: #6c757d;
+            font-size: 0.85em;
+        }
+        
+        .file-date {
+            color: #6c757d;
+            font-size: 0.85em;
+        }
+        
+        .batch-actions {
+            display: none;
+            background-color: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .batch-actions.show {
+            display: block;
+        }
+        
+        .real-time-indicator {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: var(--success-color);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        
+        .real-time-indicator.disconnected {
+            background: var(--danger-color);
+        }
+        
+        @media (max-width: 768px) {
+            .file-browser {
+                height: 400px;
+            }
+            
+            .file-preview {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Multi-Sensor Recording Dashboard
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/devices">
+                            <i class="fas fa-devices me-1"></i>Devices
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/sessions">
+                            <i class="fas fa-history me-1"></i>Sessions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/playback">
+                            <i class="fas fa-play me-1"></i>Playback
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/files">
+                            <i class="fas fa-folder me-1"></i>File Viewer
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/settings">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Real-time connection indicator -->
+    <div id="connectionIndicator" class="real-time-indicator">
+        <i class="fas fa-wifi me-1"></i>
+        <span id="connectionStatus">Connected</span>
+    </div>
+    
+    <div class="container mt-4">
+        <div class="row">
+            <!-- File Browser Panel -->
+            <div class="col-lg-5 col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-folder-open me-2"></i>File Browser
+                        </h5>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-primary btn-sm" onclick="goUp()">
+                                <i class="fas fa-level-up-alt"></i>
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="refreshFiles()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="toggleGridView()">
+                                <i class="fas fa-th" id="viewToggleIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Breadcrumb Navigation -->
+                        <div class="breadcrumb-nav">
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-0" id="breadcrumb">
+                                    <li class="breadcrumb-item"><a href="#" onclick="navigateTo('/')">recordings</a></li>
+                                </ol>
+                            </nav>
+                        </div>
+                        
+                        <!-- Search Box -->
+                        <div class="search-box mb-3">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="form-control" id="searchInput" placeholder="Search files..." oninput="filterFiles(this.value)">
+                        </div>
+                        
+                        <!-- Batch Actions -->
+                        <div class="batch-actions" id="batchActions">
+                            <div class="d-flex align-items-center">
+                                <span class="me-3"><span id="selectedCount">0</span> files selected</span>
+                                <button class="btn btn-sm btn-primary me-2" onclick="downloadSelected()">
+                                    <i class="fas fa-download me-1"></i>Download
+                                </button>
+                                <button class="btn btn-sm btn-danger me-2" onclick="deleteSelected()">
+                                    <i class="fas fa-trash me-1"></i>Delete
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="clearSelection()">
+                                    <i class="fas fa-times me-1"></i>Clear
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- File List -->
+                        <div class="file-browser" id="fileBrowser">
+                            <!-- Files will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- File Preview and Details Panel -->
+            <div class="col-lg-7 col-md-6">
+                <!-- File Preview -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-eye me-2"></i>File Preview
+                        </h5>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-primary btn-sm" onclick="downloadCurrentFile()" id="downloadBtn" disabled>
+                                <i class="fas fa-download me-1"></i>Download
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="openInExternal()" id="openBtn" disabled>
+                                <i class="fas fa-external-link-alt me-1"></i>Open
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="showFileProperties()" id="propertiesBtn" disabled>
+                                <i class="fas fa-info-circle me-1"></i>Properties
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="file-preview" id="filePreview">
+                            <div class="text-muted">
+                                <i class="fas fa-file fa-3x mb-3"></i>
+                                <p>Select a file to preview</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- File Details -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-info me-2"></i>File Details
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="fileDetails">
+                            <p class="text-muted">Select a file to view details</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-bolt me-2"></i>Quick Actions
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <button class="btn btn-outline-primary w-100" onclick="createNewFolder()">
+                                    <i class="fas fa-folder-plus me-1"></i>New Folder
+                                </button>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <button class="btn btn-outline-success w-100" onclick="uploadFiles()">
+                                    <i class="fas fa-upload me-1"></i>Upload Files
+                                </button>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <button class="btn btn-outline-warning w-100" onclick="exportToZip()">
+                                    <i class="fas fa-file-archive me-1"></i>Export as ZIP
+                                </button>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <button class="btn btn-outline-info w-100" onclick="generateIndex()">
+                                    <i class="fas fa-list me-1"></i>Generate Index
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upload Modal -->
+    <div class="modal fade" id="uploadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Upload Files</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="file" class="form-control" id="fileInput" multiple>
+                    <div class="mt-3">
+                        <div class="progress" style="display: none;" id="uploadProgress">
+                            <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="performUpload()">Upload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Properties Modal -->
+    <div class="modal fade" id="propertiesModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">File Properties</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="propertiesContent">
+                    <!-- Properties will be populated here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // File browser state
+        let currentPath = '/';
+        let currentFiles = [];
+        let selectedFiles = [];
+        let currentFile = null;
+        let isGridView = false;
+        
+        // Initialize file browser
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFiles(currentPath);
+        });
+        
+        function loadFiles(path) {
+            currentPath = path;
+            
+            fetch(`/api/files/browse?path=${encodeURIComponent(path)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        currentFiles = data.files;
+                        displayFiles(currentFiles);
+                        updateBreadcrumb(path);
+                    } else {
+                        console.error('Failed to load files:', data.error);
+                        displayFiles([]);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading files:', error);
+                    displayFiles([]);
+                });
+        }
+        
+        function displayFiles(files) {
+            const fileBrowser = document.getElementById('fileBrowser');
+            
+            if (files.length === 0) {
+                fileBrowser.innerHTML = '<div class="text-center text-muted p-4"><i class="fas fa-folder-open fa-2x mb-2"></i><p>No files found</p></div>';
+                return;
+            }
+            
+            // Sort files: directories first, then by name
+            files.sort((a, b) => {
+                if (a.type === 'directory' && b.type !== 'directory') return -1;
+                if (a.type !== 'directory' && b.type === 'directory') return 1;
+                return a.name.localeCompare(b.name);
+            });
+            
+            fileBrowser.innerHTML = files.map(file => {
+                const isSelected = selectedFiles.includes(file.path);
+                const icon = getFileIcon(file);
+                
+                return `
+                    <div class="file-item ${isSelected ? 'selected' : ''}" onclick="selectFile('${file.path}')" oncontextmenu="showContextMenu(event, '${file.path}')">
+                        <div class="file-icon">
+                            <i class="${icon}"></i>
+                        </div>
+                        <div class="file-details">
+                            <div class="fw-medium">${file.name}</div>
+                            <div class="file-size">${file.type === 'directory' ? 'Folder' : formatFileSize(file.size)}</div>
+                            <div class="file-date">${formatDate(file.modified)}</div>
+                        </div>
+                        <div class="file-actions">
+                            <input type="checkbox" class="form-check-input" ${isSelected ? 'checked' : ''} 
+                                   onchange="toggleFileSelection('${file.path}')" onclick="event.stopPropagation()">
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function getFileIcon(file) {
+            if (file.type === 'directory') {
+                return 'fas fa-folder text-warning';
+            }
+            
+            const ext = file.name.split('.').pop().toLowerCase();
+            
+            switch (ext) {
+                case 'mp4':
+                case 'avi':
+                case 'mov':
+                case 'mkv':
+                    return 'fas fa-file-video text-danger';
+                case 'jpg':
+                case 'jpeg':
+                case 'png':
+                case 'gif':
+                case 'bmp':
+                    return 'fas fa-file-image text-success';
+                case 'mp3':
+                case 'wav':
+                case 'ogg':
+                case 'flac':
+                    return 'fas fa-file-audio text-info';
+                case 'pdf':
+                    return 'fas fa-file-pdf text-danger';
+                case 'txt':
+                case 'log':
+                    return 'fas fa-file-alt text-secondary';
+                case 'json':
+                case 'xml':
+                case 'csv':
+                    return 'fas fa-file-code text-primary';
+                case 'zip':
+                case 'rar':
+                case '7z':
+                    return 'fas fa-file-archive text-warning';
+                default:
+                    return 'fas fa-file text-muted';
+            }
+        }
+        
+        function selectFile(filePath) {
+            // Clear previous selection
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Select clicked item
+            event.target.closest('.file-item').classList.add('selected');
+            
+            // Load file details
+            fetch(`/api/files/details?path=${encodeURIComponent(filePath)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        currentFile = data.file;
+                        displayFileDetails(currentFile);
+                        previewFile(currentFile);
+                        enableFileActions();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading file details:', error);
+                });
+        }
+        
+        function displayFileDetails(file) {
+            const fileDetails = document.getElementById('fileDetails');
+            
+            fileDetails.innerHTML = `
+                <table class="table table-sm file-info-table">
+                    <tr>
+                        <td><strong>Name:</strong></td>
+                        <td>${file.name}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Type:</strong></td>
+                        <td>${file.type}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Size:</strong></td>
+                        <td>${file.type === 'directory' ? '-' : formatFileSize(file.size)}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Modified:</strong></td>
+                        <td>${formatDate(file.modified)}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Path:</strong></td>
+                        <td><code>${file.path}</code></td>
+                    </tr>
+                    ${file.duration ? `
+                    <tr>
+                        <td><strong>Duration:</strong></td>
+                        <td>${formatDuration(file.duration)}</td>
+                    </tr>
+                    ` : ''}
+                    ${file.dimensions ? `
+                    <tr>
+                        <td><strong>Dimensions:</strong></td>
+                        <td>${file.dimensions}</td>
+                    </tr>
+                    ` : ''}
+                </table>
+            `;
+        }
+        
+        function previewFile(file) {
+            const filePreview = document.getElementById('filePreview');
+            
+            if (file.type === 'directory') {
+                filePreview.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-folder fa-3x mb-3 text-warning"></i>
+                        <p>Folder</p>
+                        <button class="btn btn-primary" onclick="navigateTo('${file.path}')">
+                            <i class="fas fa-folder-open me-1"></i>Open Folder
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            const ext = file.name.split('.').pop().toLowerCase();
+            
+            if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(ext)) {
+                filePreview.innerHTML = `<img src="/api/files/content?path=${encodeURIComponent(file.path)}" alt="${file.name}">`;
+            } else if (['mp4', 'avi', 'mov', 'mkv'].includes(ext)) {
+                filePreview.innerHTML = `
+                    <video controls>
+                        <source src="/api/files/content?path=${encodeURIComponent(file.path)}" type="video/${ext}">
+                        Your browser does not support the video tag.
+                    </video>
+                `;
+            } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
+                filePreview.innerHTML = `
+                    <audio controls style="width: 100%;">
+                        <source src="/api/files/content?path=${encodeURIComponent(file.path)}" type="audio/${ext}">
+                        Your browser does not support the audio tag.
+                    </audio>
+                `;
+            } else if (['txt', 'log', 'json', 'xml', 'csv'].includes(ext)) {
+                fetch(`/api/files/content?path=${encodeURIComponent(file.path)}`)
+                    .then(response => response.text())
+                    .then(content => {
+                        filePreview.innerHTML = `<div class="text-content">${content}</div>`;
+                    })
+                    .catch(error => {
+                        filePreview.innerHTML = `
+                            <div class="text-center text-muted">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                                <p>Cannot preview file</p>
+                            </div>
+                        `;
+                    });
+            } else {
+                filePreview.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-file fa-3x mb-3"></i>
+                        <p>Preview not available for this file type</p>
+                        <button class="btn btn-outline-primary" onclick="downloadCurrentFile()">
+                            <i class="fas fa-download me-1"></i>Download to view
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        function enableFileActions() {
+            document.getElementById('downloadBtn').disabled = false;
+            document.getElementById('openBtn').disabled = false;
+            document.getElementById('propertiesBtn').disabled = false;
+        }
+        
+        function navigateTo(path) {
+            loadFiles(path);
+        }
+        
+        function goUp() {
+            const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/';
+            navigateTo(parentPath);
+        }
+        
+        function refreshFiles() {
+            loadFiles(currentPath);
+        }
+        
+        function toggleGridView() {
+            isGridView = !isGridView;
+            const icon = document.getElementById('viewToggleIcon');
+            icon.className = isGridView ? 'fas fa-list' : 'fas fa-th';
+            // TODO: Implement grid view layout
+        }
+        
+        function updateBreadcrumb(path) {
+            const breadcrumb = document.getElementById('breadcrumb');
+            const parts = path.split('/').filter(part => part);
+            
+            let html = '<li class="breadcrumb-item"><a href="#" onclick="navigateTo(\'/\')">recordings</a></li>';
+            
+            let currentPath = '';
+            parts.forEach((part, index) => {
+                currentPath += '/' + part;
+                if (index === parts.length - 1) {
+                    html += `<li class="breadcrumb-item active">${part}</li>`;
+                } else {
+                    html += `<li class="breadcrumb-item"><a href="#" onclick="navigateTo('${currentPath}')">${part}</a></li>`;
+                }
+            });
+            
+            breadcrumb.innerHTML = html;
+        }
+        
+        function filterFiles(searchTerm) {
+            const filteredFiles = currentFiles.filter(file => 
+                file.name.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            displayFiles(filteredFiles);
+        }
+        
+        function toggleFileSelection(filePath) {
+            const index = selectedFiles.indexOf(filePath);
+            if (index > -1) {
+                selectedFiles.splice(index, 1);
+            } else {
+                selectedFiles.push(filePath);
+            }
+            
+            updateBatchActions();
+        }
+        
+        function updateBatchActions() {
+            const batchActions = document.getElementById('batchActions');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            selectedCount.textContent = selectedFiles.length;
+            
+            if (selectedFiles.length > 0) {
+                batchActions.classList.add('show');
+            } else {
+                batchActions.classList.remove('show');
+            }
+        }
+        
+        function clearSelection() {
+            selectedFiles = [];
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            document.querySelectorAll('.form-check-input').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            updateBatchActions();
+        }
+        
+        function downloadCurrentFile() {
+            if (currentFile) {
+                window.open(`/api/files/download?path=${encodeURIComponent(currentFile.path)}`);
+            }
+        }
+        
+        function downloadSelected() {
+            if (selectedFiles.length === 0) return;
+            
+            fetch('/api/files/download-multiple', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ files: selectedFiles })
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'selected_files.zip';
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error('Download error:', error);
+                alert('Download failed');
+            });
+        }
+        
+        function deleteSelected() {
+            if (selectedFiles.length === 0) return;
+            
+            if (confirm(`Are you sure you want to delete ${selectedFiles.length} file(s)?`)) {
+                fetch('/api/files/delete-multiple', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ files: selectedFiles })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        refreshFiles();
+                        clearSelection();
+                        alert('Files deleted successfully');
+                    } else {
+                        alert('Delete failed: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Delete error:', error);
+                    alert('Delete failed');
+                });
+            }
+        }
+        
+        function openInExternal() {
+            if (currentFile) {
+                fetch(`/api/files/open-external`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ path: currentFile.path })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('Failed to open file: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Open external error:', error);
+                });
+            }
+        }
+        
+        function showFileProperties() {
+            if (!currentFile) return;
+            
+            fetch(`/api/files/properties?path=${encodeURIComponent(currentFile.path)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayProperties(data.properties);
+                        new bootstrap.Modal(document.getElementById('propertiesModal')).show();
+                    }
+                })
+                .catch(error => {
+                    console.error('Properties error:', error);
+                });
+        }
+        
+        function displayProperties(properties) {
+            const content = document.getElementById('propertiesContent');
+            content.innerHTML = `
+                <table class="table">
+                    ${Object.entries(properties).map(([key, value]) => `
+                        <tr>
+                            <td><strong>${key}:</strong></td>
+                            <td>${value}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            `;
+        }
+        
+        function createNewFolder() {
+            const folderName = prompt('Enter folder name:');
+            if (folderName) {
+                fetch('/api/files/create-folder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        path: currentPath,
+                        name: folderName 
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        refreshFiles();
+                    } else {
+                        alert('Failed to create folder: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Create folder error:', error);
+                });
+            }
+        }
+        
+        function uploadFiles() {
+            new bootstrap.Modal(document.getElementById('uploadModal')).show();
+        }
+        
+        function performUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const files = fileInput.files;
+            
+            if (files.length === 0) {
+                alert('Please select files to upload');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('path', currentPath);
+            
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+            
+            const progressBar = document.getElementById('uploadProgress');
+            progressBar.style.display = 'block';
+            
+            fetch('/api/files/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+                    refreshFiles();
+                    alert('Files uploaded successfully');
+                } else {
+                    alert('Upload failed: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Upload error:', error);
+                alert('Upload failed');
+            })
+            .finally(() => {
+                progressBar.style.display = 'none';
+            });
+        }
+        
+        function exportToZip() {
+            fetch(`/api/files/export-zip?path=${encodeURIComponent(currentPath)}`)
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `export_${Date.now()}.zip`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error('Export error:', error);
+                    alert('Export failed');
+                });
+        }
+        
+        function generateIndex() {
+            fetch(`/api/files/generate-index?path=${encodeURIComponent(currentPath)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Index generated successfully');
+                        refreshFiles();
+                    } else {
+                        alert('Index generation failed: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Index generation error:', error);
+                    alert('Index generation failed');
+                });
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleString();
+        }
+        
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else {
+                return `${minutes}:${secs.toString().padStart(2, '0')}`;
+            }
+        }
+    </script>
+</body>
+</html>

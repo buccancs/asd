@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Sensor Recording Dashboard</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.min.js"></script>
+    <!-- Socket.IO for real-time communication -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --dark-bg: #34495e;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--dark-bg));
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: white !important;
+        }
+        
+        .status-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: none;
+        }
+        
+        .status-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-connected {
+            background-color: var(--success-color);
+        }
+        
+        .status-recording {
+            background-color: var(--danger-color);
+        }
+        
+        .status-idle {
+            background-color: var(--warning-color);
+        }
+        
+        .status-disconnected {
+            background-color: #95a5a6;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .session-controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .btn-custom {
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, var(--success-color), #2ecc71);
+            border: none;
+            color: white;
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, var(--danger-color), #c0392b);
+            border: none;
+            color: white;
+        }
+        
+        .btn-custom:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .real-time-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success-color);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        
+        .real-time-indicator.disconnected {
+            background: var(--danger-color);
+        }
+        
+        @media (max-width: 768px) {
+            .device-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Multi-Sensor Recording Dashboard
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/devices">
+                            <i class="fas fa-devices me-1"></i>Devices
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/sessions">
+                            <i class="fas fa-history me-1"></i>Sessions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/playback">
+                            <i class="fas fa-play me-1"></i>Playback
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/files">
+                            <i class="fas fa-folder me-1"></i>File Viewer
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/settings">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Real-time connection indicator -->
+    <div id="connectionIndicator" class="real-time-indicator">
+        <i class="fas fa-wifi me-1"></i>
+        <span id="connectionStatus">Connected</span>
+    </div>
+    
+    <div class="container mt-4">
+        <!-- Session Control Panel -->
+        <div class="session-controls">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h4 class="mb-3">
+                        <i class="fas fa-record-vinyl me-2"></i>Recording Session
+                    </h4>
+                    <div id="sessionStatus">
+                        <span class="status-indicator status-idle"></span>
+                        <span id="sessionStatusText">No active session</span>
+                    </div>
+                    <div id="sessionInfo" class="mt-2" style="display: none;">
+                        <small class="text-muted">
+                            Session ID: <span id="sessionId"></span><br>
+                            Duration: <span id="sessionDuration">00:00:00</span><br>
+                            Devices: <span id="recordingDevices">0</span>
+                        </small>
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button id="startSessionBtn" class="btn btn-start btn-custom me-2">
+                        <i class="fas fa-play me-1"></i>Start Recording
+                    </button>
+                    <button id="stopSessionBtn" class="btn btn-stop btn-custom" disabled>
+                        <i class="fas fa-stop me-1"></i>Stop Recording
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Overview -->
+        <div class="row mb-4">
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card status-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-mobile-alt fa-2x text-primary mb-2"></i>
+                        <h5 class="card-title">Android Devices</h5>
+                        <h3 id="androidDeviceCount" class="text-primary">0</h3>
+                        <p class="text-muted mb-0">Connected</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card status-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-video fa-2x text-info mb-2"></i>
+                        <h5 class="card-title">USB Webcams</h5>
+                        <h3 id="webcamCount" class="text-info">0</h3>
+                        <p class="text-muted mb-0">Active</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card status-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-heartbeat fa-2x text-success mb-2"></i>
+                        <h5 class="card-title">Shimmer Sensors</h5>
+                        <h3 id="shimmerCount" class="text-success">0</h3>
+                        <p class="text-muted mb-0">Recording</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card status-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-desktop fa-2x text-warning mb-2"></i>
+                        <h5 class="card-title">PC Controller</h5>
+                        <div id="pcStatus">
+                            <h6 class="text-warning">Monitoring</h6>
+                        </div>
+                        <p class="text-muted mb-0">System Status</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Device Status Grid -->
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card status-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-mobile-alt me-2"></i>Android Devices
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="androidDevicesList" class="device-list">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-search fa-2x mb-2"></i>
+                                <p>Searching for devices...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="card status-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-video me-2"></i>USB Webcams
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="webcamList" class="device-list">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-search fa-2x mb-2"></i>
+                                <p>Detecting webcams...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Real-time Data Visualization -->
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card status-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i>GSR Sensor Data
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="gsrChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="card status-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-thermometer-half me-2"></i>Thermal Data
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="thermalChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Shimmer Sensors -->
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card status-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-heartbeat me-2"></i>Shimmer Sensor Status
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="shimmerSensorsList" class="device-list">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-bluetooth fa-2x mb-2"></i>
+                                <p>Scanning for Shimmer sensors...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // WebSocket connection for real-time updates
+        const socket = io();
+        
+        // Chart instances
+        let gsrChart, thermalChart;
+        
+        // Data storage for charts
+        const chartData = {
+            timestamps: [],
+            gsr: {
+                android_1: [],
+                android_2: [],
+                shimmer_1: [],
+                shimmer_2: []
+            },
+            thermal: {
+                android_1: [],
+                android_2: []
+            }
+        };
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            setupEventHandlers();
+            updateConnectionStatus(true);
+        });
+        
+        // Socket event handlers
+        socket.on('connect', function() {
+            console.log('Connected to dashboard server');
+            updateConnectionStatus(true);
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('Disconnected from dashboard server');
+            updateConnectionStatus(false);
+        });
+        
+        socket.on('status_update', function(data) {
+            updateDeviceStatus(data.devices);
+            updateSessionInfo(data.session);
+        });
+        
+        socket.on('device_status_update', function(data) {
+            if (data.device_type && data.device_id) {
+                updateSingleDeviceStatus(data.device_type, data.device_id, data.status);
+            } else {
+                updateDeviceStatus(data);
+            }
+        });
+        
+        socket.on('sensor_data_update', function(data) {
+            updateSensorData(data);
+        });
+        
+        socket.on('session_info_update', function(data) {
+            updateSessionInfo(data);
+        });
+        
+        function initializeCharts() {
+            // GSR Chart
+            const gsrCtx = document.getElementById('gsrChart').getContext('2d');
+            gsrChart = new Chart(gsrCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Android 1 GSR',
+                            data: [],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Android 2 GSR',
+                            data: [],
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Shimmer 1',
+                            data: [],
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Shimmer 2',
+                            data: [],
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            display: false
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'GSR Value (μS)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    elements: {
+                        point: {
+                            radius: 0
+                        }
+                    }
+                }
+            });
+            
+            // Thermal Chart
+            const thermalCtx = document.getElementById('thermalChart').getContext('2d');
+            thermalChart = new Chart(thermalCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Android 1 Thermal',
+                            data: [],
+                            borderColor: '#9b59b6',
+                            backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Android 2 Thermal',
+                            data: [],
+                            borderColor: '#e67e22',
+                            backgroundColor: 'rgba(230, 126, 34, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            display: false
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Temperature (°C)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    elements: {
+                        point: {
+                            radius: 0
+                        }
+                    }
+                }
+            });
+        }
+        
+        function setupEventHandlers() {
+            // Session control buttons
+            document.getElementById('startSessionBtn').addEventListener('click', startSession);
+            document.getElementById('stopSessionBtn').addEventListener('click', stopSession);
+        }
+        
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('connectionIndicator');
+            const status = document.getElementById('connectionStatus');
+            
+            if (connected) {
+                indicator.classList.remove('disconnected');
+                status.textContent = 'Connected';
+            } else {
+                indicator.classList.add('disconnected');
+                status.textContent = 'Disconnected';
+            }
+        }
+        
+        function updateDeviceStatus(devices) {
+            // Update device counts
+            const androidCount = Object.keys(devices.android_devices || {}).length;
+            const webcamCount = Object.keys(devices.usb_webcams || {}).length;
+            const shimmerCount = Object.keys(devices.shimmer_sensors || {}).length;
+            
+            document.getElementById('androidDeviceCount').textContent = androidCount;
+            document.getElementById('webcamCount').textContent = webcamCount;
+            document.getElementById('shimmerCount').textContent = shimmerCount;
+            
+            // Update device lists
+            updateAndroidDevicesList(devices.android_devices || {});
+            updateWebcamList(devices.usb_webcams || {});
+            updateShimmerSensorsList(devices.shimmer_sensors || {});
+            
+            // Update PC status
+            if (devices.pc_controller) {
+                updatePCStatus(devices.pc_controller);
+            }
+        }
+        
+        function updateSingleDeviceStatus(deviceType, deviceId, status) {
+            // Update individual device status
+            console.log(`Device ${deviceId} (${deviceType}) status:`, status);
+        }
+        
+        function updateAndroidDevicesList(devices) {
+            const container = document.getElementById('androidDevicesList');
+            
+            if (Object.keys(devices).length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-mobile-alt fa-2x mb-2"></i>
+                        <p>No Android devices connected</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            for (const [deviceId, device] of Object.entries(devices)) {
+                const statusClass = device.status === 'connected' ? 'status-connected' : 'status-disconnected';
+                const recordingIcon = device.recording ? 'fa-record-vinyl text-danger' : 'fa-pause text-muted';
+                
+                html += `
+                    <div class="device-item mb-3 p-3 border rounded">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">
+                                    <span class="status-indicator ${statusClass}"></span>
+                                    ${deviceId}
+                                </h6>
+                                <small class="text-muted">
+                                    Battery: ${device.battery || 'N/A'}% | 
+                                    Temp: ${device.temperature || 'N/A'}°C
+                                </small>
+                            </div>
+                            <div>
+                                <i class="fas ${recordingIcon}"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function updateWebcamList(webcams) {
+            const container = document.getElementById('webcamList');
+            
+            if (Object.keys(webcams).length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-video fa-2x mb-2"></i>
+                        <p>No USB webcams detected</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            for (const [webcamId, webcam] of Object.entries(webcams)) {
+                const statusClass = webcam.status === 'active' ? 'status-connected' : 'status-idle';
+                const recordingIcon = webcam.recording ? 'fa-record-vinyl text-danger' : 'fa-pause text-muted';
+                
+                html += `
+                    <div class="device-item mb-3 p-3 border rounded">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">
+                                    <span class="status-indicator ${statusClass}"></span>
+                                    ${webcamId}
+                                </h6>
+                                <small class="text-muted">
+                                    ${webcam.resolution || '1080p'} @ ${webcam.fps || 30}fps
+                                </small>
+                            </div>
+                            <div>
+                                <i class="fas ${recordingIcon}"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function updateShimmerSensorsList(sensors) {
+            const container = document.getElementById('shimmerSensorsList');
+            
+            if (Object.keys(sensors).length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-bluetooth fa-2x mb-2"></i>
+                        <p>No Shimmer sensors connected</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div class="row">';
+            for (const [sensorId, sensor] of Object.entries(sensors)) {
+                const statusClass = sensor.status === 'connected' ? 'status-connected' : 'status-disconnected';
+                const recordingIcon = sensor.recording ? 'fa-heartbeat text-danger' : 'fa-pause text-muted';
+                
+                html += `
+                    <div class="col-md-6 mb-3">
+                        <div class="device-item p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <span class="status-indicator ${statusClass}"></span>
+                                        ${sensorId}
+                                    </h6>
+                                    <small class="text-muted">
+                                        Signal: ${sensor.signal_strength || 'N/A'} | 
+                                        Battery: ${sensor.battery || 'N/A'}%
+                                    </small>
+                                </div>
+                                <div>
+                                    <i class="fas ${recordingIcon}"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            
+            container.innerHTML = html;
+        }
+        
+        function updatePCStatus(pcStatus) {
+            const container = document.getElementById('pcStatus');
+            const statusText = pcStatus.status || 'monitoring';
+            
+            container.innerHTML = `
+                <h6 class="text-capitalize text-warning">${statusText}</h6>
+                <small class="text-muted">
+                    CPU: ${pcStatus.cpu_usage || 0}% | 
+                    Memory: ${pcStatus.memory_usage || 0}%
+                </small>
+            `;
+        }
+        
+        function updateSessionInfo(session) {
+            const statusIndicator = document.querySelector('#sessionStatus .status-indicator');
+            const statusText = document.getElementById('sessionStatusText');
+            const sessionInfo = document.getElementById('sessionInfo');
+            const startBtn = document.getElementById('startSessionBtn');
+            const stopBtn = document.getElementById('stopSessionBtn');
+            
+            if (session.active) {
+                statusIndicator.className = 'status-indicator status-recording';
+                statusText.textContent = 'Recording in progress';
+                sessionInfo.style.display = 'block';
+                
+                document.getElementById('sessionId').textContent = session.session_id || 'N/A';
+                document.getElementById('recordingDevices').textContent = (session.recording_devices || []).length;
+                
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                
+                // Update duration if session is active
+                if (session.start_time) {
+                    updateSessionDuration(session.start_time);
+                }
+            } else {
+                statusIndicator.className = 'status-indicator status-idle';
+                statusText.textContent = 'No active session';
+                sessionInfo.style.display = 'none';
+                
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        }
+        
+        function updateSessionDuration(startTime) {
+            if (!startTime) return;
+            
+            const start = new Date(startTime);
+            const now = new Date();
+            const duration = Math.floor((now - start) / 1000);
+            
+            const hours = Math.floor(duration / 3600);
+            const minutes = Math.floor((duration % 3600) / 60);
+            const seconds = duration % 60;
+            
+            const durationText = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('sessionDuration').textContent = durationText;
+        }
+        
+        function updateSensorData(data) {
+            const timestamp = new Date(data.timestamp);
+            const timeStr = timestamp.toLocaleTimeString();
+            
+            // Add timestamp
+            chartData.timestamps.push(timeStr);
+            
+            // Update chart data based on device and sensor type
+            if (data.device_id.includes('android') && data.sensor_type === 'gsr') {
+                chartData.gsr[data.device_id].push(data.value);
+                updateChart(gsrChart, chartData.timestamps, [
+                    chartData.gsr.android_1,
+                    chartData.gsr.android_2,
+                    chartData.gsr.shimmer_1,
+                    chartData.gsr.shimmer_2
+                ]);
+            } else if (data.device_id.includes('android') && data.sensor_type === 'thermal') {
+                chartData.thermal[data.device_id].push(data.value);
+                updateChart(thermalChart, chartData.timestamps, [
+                    chartData.thermal.android_1,
+                    chartData.thermal.android_2
+                ]);
+            } else if (data.device_id.includes('shimmer')) {
+                chartData.gsr[data.device_id].push(data.value);
+                updateChart(gsrChart, chartData.timestamps, [
+                    chartData.gsr.android_1,
+                    chartData.gsr.android_2,
+                    chartData.gsr.shimmer_1,
+                    chartData.gsr.shimmer_2
+                ]);
+            }
+            
+            // Limit data points to prevent memory issues
+            const maxPoints = 50;
+            if (chartData.timestamps.length > maxPoints) {
+                chartData.timestamps = chartData.timestamps.slice(-maxPoints);
+                for (const device in chartData.gsr) {
+                    chartData.gsr[device] = chartData.gsr[device].slice(-maxPoints);
+                }
+                for (const device in chartData.thermal) {
+                    chartData.thermal[device] = chartData.thermal[device].slice(-maxPoints);
+                }
+            }
+        }
+        
+        function updateChart(chart, labels, datasets) {
+            chart.data.labels = labels;
+            datasets.forEach((data, index) => {
+                if (chart.data.datasets[index]) {
+                    chart.data.datasets[index].data = data;
+                }
+            });
+            chart.update('none');
+        }
+        
+        function startSession() {
+            fetch('/api/session/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    devices: ['android_1', 'android_2', 'webcam_1', 'webcam_2']
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Session started:', data.session_id);
+                } else {
+                    alert('Failed to start session: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error starting session:', error);
+                alert('Failed to start session');
+            });
+        }
+        
+        function stopSession() {
+            fetch('/api/session/stop', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Session stopped:', data.session_id);
+                } else {
+                    alert('Failed to stop session: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error stopping session:', error);
+                alert('Failed to stop session');
+            });
+        }
+        
+        // Update session duration every second for active sessions
+        setInterval(() => {
+            const sessionInfo = document.getElementById('sessionInfo');
+            if (sessionInfo.style.display !== 'none') {
+                // This will be updated by the session info from server
+                socket.emit('request_session_info');
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

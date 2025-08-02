@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Sensor Recording Dashboard - Settings</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Socket.IO for real-time communication -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --dark-bg: #34495e;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--dark-bg));
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: white !important;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .settings-nav {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 0;
+        }
+        
+        .settings-nav .nav-link {
+            color: #495057;
+            border-radius: 8px;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+        
+        .settings-nav .nav-link:hover {
+            background-color: #e9ecef;
+            color: var(--primary-color);
+        }
+        
+        .settings-nav .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .settings-section {
+            padding: 20px;
+        }
+        
+        .setting-item {
+            border-bottom: 1px solid #f1f3f4;
+            padding: 15px 0;
+        }
+        
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+        
+        .setting-label {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        .setting-description {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        
+        .color-picker {
+            width: 50px;
+            height: 35px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .device-config {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-ok {
+            background-color: var(--success-color);
+        }
+        
+        .status-warning {
+            background-color: var(--warning-color);
+        }
+        
+        .status-error {
+            background-color: var(--danger-color);
+        }
+        
+        .backup-item {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #fff;
+        }
+        
+        .real-time-indicator {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: var(--success-color);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        
+        .real-time-indicator.disconnected {
+            background: var(--danger-color);
+        }
+        
+        @media (max-width: 768px) {
+            .settings-nav {
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Multi-Sensor Recording Dashboard
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/devices">
+                            <i class="fas fa-devices me-1"></i>Devices
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/sessions">
+                            <i class="fas fa-history me-1"></i>Sessions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/playback">
+                            <i class="fas fa-play me-1"></i>Playback
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/files">
+                            <i class="fas fa-folder me-1"></i>File Viewer
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/settings">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Real-time connection indicator -->
+    <div id="connectionIndicator" class="real-time-indicator">
+        <i class="fas fa-wifi me-1"></i>
+        <span id="connectionStatus">Connected</span>
+    </div>
+    
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Settings Navigation -->
+            <div class="col-lg-3 col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>Settings Categories
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <nav class="nav nav-pills flex-column settings-nav">
+                            <a class="nav-link active" href="#general" onclick="showSection('general')">
+                                <i class="fas fa-cog me-2"></i>General
+                            </a>
+                            <a class="nav-link" href="#recording" onclick="showSection('recording')">
+                                <i class="fas fa-record-vinyl me-2"></i>Recording
+                            </a>
+                            <a class="nav-link" href="#devices" onclick="showSection('devices')">
+                                <i class="fas fa-devices me-2"></i>Device Settings
+                            </a>
+                            <a class="nav-link" href="#network" onclick="showSection('network')">
+                                <i class="fas fa-network-wired me-2"></i>Network
+                            </a>
+                            <a class="nav-link" href="#calibration" onclick="showSection('calibration')">
+                                <i class="fas fa-crosshairs me-2"></i>Calibration
+                            </a>
+                            <a class="nav-link" href="#storage" onclick="showSection('storage')">
+                                <i class="fas fa-hdd me-2"></i>Storage
+                            </a>
+                            <a class="nav-link" href="#backup" onclick="showSection('backup')">
+                                <i class="fas fa-shield-alt me-2"></i>Backup & Security
+                            </a>
+                            <a class="nav-link" href="#advanced" onclick="showSection('advanced')">
+                                <i class="fas fa-wrench me-2"></i>Advanced
+                            </a>
+                        </nav>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-bolt me-2"></i>Quick Actions
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-outline-success w-100 mb-2" onclick="saveAllSettings()">
+                            <i class="fas fa-save me-1"></i>Save All Settings
+                        </button>
+                        <button class="btn btn-outline-warning w-100 mb-2" onclick="resetToDefaults()">
+                            <i class="fas fa-undo me-1"></i>Reset to Defaults
+                        </button>
+                        <button class="btn btn-outline-info w-100 mb-2" onclick="exportSettings()">
+                            <i class="fas fa-download me-1"></i>Export Settings
+                        </button>
+                        <button class="btn btn-outline-secondary w-100" onclick="importSettings()">
+                            <i class="fas fa-upload me-1"></i>Import Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings Content -->
+            <div class="col-lg-9 col-md-8">
+                <!-- General Settings -->
+                <div id="generalSection" class="settings-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-cog me-2"></i>General Settings
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="setting-item">
+                                <div class="setting-label">Application Theme</div>
+                                <div class="setting-description">Choose the color theme for the interface</div>
+                                <select class="form-select" id="theme" onchange="updateSetting('theme', this.value)">
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="auto">Auto (system preference)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Language</div>
+                                <div class="setting-description">Select the interface language</div>
+                                <select class="form-select" id="language" onchange="updateSetting('language', this.value)">
+                                    <option value="en">English</option>
+                                    <option value="es">Español</option>
+                                    <option value="fr">Français</option>
+                                    <option value="de">Deutsch</option>
+                                </select>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Auto-save Interval</div>
+                                <div class="setting-description">Automatically save settings every N minutes</div>
+                                <input type="number" class="form-control" id="autosaveInterval" value="5" min="1" max="60" 
+                                       onchange="updateSetting('autosaveInterval', this.value)">
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Show Notifications</div>
+                                <div class="setting-description">Display system notifications for important events</div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="notifications" checked
+                                           onchange="updateSetting('notifications', this.checked)">
+                                    <label class="form-check-label" for="notifications">Enable notifications</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recording Settings -->
+                <div id="recordingSection" class="settings-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-record-vinyl me-2"></i>Recording Settings
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="setting-item">
+                                <div class="setting-label">Default Recording Duration</div>
+                                <div class="setting-description">Maximum duration for automatic recording sessions (minutes)</div>
+                                <input type="number" class="form-control" id="recordingDuration" value="30" min="1" max="240"
+                                       onchange="updateSetting('recordingDuration', this.value)">
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Video Quality</div>
+                                <div class="setting-description">Default video recording quality</div>
+                                <select class="form-select" id="videoQuality" onchange="updateSetting('videoQuality', this.value)">
+                                    <option value="720p">720p HD</option>
+                                    <option value="1080p" selected>1080p Full HD</option>
+                                    <option value="4k">4K Ultra HD</option>
+                                </select>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Audio Recording</div>
+                                <div class="setting-description">Enable audio recording alongside video</div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="audioRecording" checked
+                                           onchange="updateSetting('audioRecording', this.checked)">
+                                    <label class="form-check-label" for="audioRecording">Record audio</label>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Auto-start Recording</div>
+                                <div class="setting-description">Automatically start recording when all devices are connected</div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="autoStartRecording"
+                                           onchange="updateSetting('autoStartRecording', this.checked)">
+                                    <label class="form-check-label" for="autoStartRecording">Enable auto-start</label>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Compression Level</div>
+                                <div class="setting-description">Video compression level (higher = smaller files, lower quality)</div>
+                                <input type="range" class="form-range" id="compressionLevel" min="1" max="10" value="5"
+                                       oninput="updateCompressionDisplay(this.value)" onchange="updateSetting('compressionLevel', this.value)">
+                                <div class="d-flex justify-content-between">
+                                    <small>Low compression</small>
+                                    <small id="compressionValue">Medium (5)</small>
+                                    <small>High compression</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Device Settings -->
+                <div id="devicesSection" class="settings-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-devices me-2"></i>Device Configuration
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Android Device Settings -->
+                            <div class="device-config">
+                                <h6><i class="fas fa-mobile-alt me-2"></i>Android Devices</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Connection Timeout (seconds)</label>
+                                        <input type="number" class="form-control" id="androidTimeout" value="30" min="5" max="120"
+                                               onchange="updateSetting('androidTimeout', this.value)">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Retry Attempts</label>
+                                        <input type="number" class="form-control" id="androidRetries" value="3" min="1" max="10"
+                                               onchange="updateSetting('androidRetries', this.value)">
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="androidAutoReconnect" checked
+                                               onchange="updateSetting('androidAutoReconnect', this.checked)">
+                                        <label class="form-check-label" for="androidAutoReconnect">Auto-reconnect on disconnection</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Shimmer Sensor Settings -->
+                            <div class="device-config">
+                                <h6><i class="fas fa-heartbeat me-2"></i>Shimmer Sensors</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Sampling Rate (Hz)</label>
+                                        <select class="form-select" id="shimmerSamplingRate" onchange="updateSetting('shimmerSamplingRate', this.value)">
+                                            <option value="128">128 Hz</option>
+                                            <option value="256" selected>256 Hz</option>
+                                            <option value="512">512 Hz</option>
+                                            <option value="1024">1024 Hz</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Battery Warning Level (%)</label>
+                                        <input type="number" class="form-control" id="shimmerBatteryWarning" value="20" min="5" max="50"
+                                               onchange="updateSetting('shimmerBatteryWarning', this.value)">
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="form-label">Enabled Sensors</label>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="shimmerGSR" checked
+                                                       onchange="updateShimmerSensors()">
+                                                <label class="form-check-label" for="shimmerGSR">GSR</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="shimmerAccel" checked
+                                                       onchange="updateShimmerSensors()">
+                                                <label class="form-check-label" for="shimmerAccel">Accelerometer</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="shimmerECG"
+                                                       onchange="updateShimmerSensors()">
+                                                <label class="form-check-label" for="shimmerECG">ECG</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- USB Webcam Settings -->
+                            <div class="device-config">
+                                <h6><i class="fas fa-video me-2"></i>USB Webcams</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Default Resolution</label>
+                                        <select class="form-select" id="webcamResolution" onchange="updateSetting('webcamResolution', this.value)">
+                                            <option value="640x480">640x480</option>
+                                            <option value="1280x720">1280x720 (HD)</option>
+                                            <option value="1920x1080" selected>1920x1080 (Full HD)</option>
+                                            <option value="3840x2160">3840x2160 (4K)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Frame Rate (FPS)</label>
+                                        <select class="form-select" id="webcamFPS" onchange="updateSetting('webcamFPS', this.value)">
+                                            <option value="15">15 FPS</option>
+                                            <option value="30" selected>30 FPS</option>
+                                            <option value="60">60 FPS</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Network Settings -->
+                <div id="networkSection" class="settings-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-network-wired me-2"></i>Network Configuration
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="setting-item">
+                                <div class="setting-label">Server Port</div>
+                                <div class="setting-description">Port for device communication server</div>
+                                <input type="number" class="form-control" id="serverPort" value="9000" min="1024" max="65535"
+                                       onchange="updateSetting('serverPort', this.value)">
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Web Dashboard Port</div>
+                                <div class="setting-description">Port for web dashboard interface</div>
+                                <input type="number" class="form-control" id="webPort" value="5000" min="1024" max="65535"
+                                       onchange="updateSetting('webPort', this.value)">
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Connection Timeout</div>
+                                <div class="setting-description">Network connection timeout in seconds</div>
+                                <input type="number" class="form-control" id="connectionTimeout" value="30" min="5" max="300"
+                                       onchange="updateSetting('connectionTimeout', this.value)">
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Enable SSL/TLS</div>
+                                <div class="setting-description">Use encrypted connections for security</div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="enableSSL"
+                                           onchange="updateSetting('enableSSL', this.checked)">
+                                    <label class="form-check-label" for="enableSSL">Enable SSL/TLS encryption</label>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Data Compression</div>
+                                <div class="setting-description">Compress network data to reduce bandwidth usage</div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="dataCompression" checked
+                                           onchange="updateSetting('dataCompression', this.checked)">
+                                    <label class="form-check-label" for="dataCompression">Enable data compression</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Calibration Settings -->
+                <div id="calibrationSection" class="settings-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-crosshairs me-2"></i>Calibration Settings
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="setting-item">
+                                <div class="setting-label">Auto-calibration</div>
+                                <div class="setting-description">Automatically run calibration when devices connect</div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="autoCalibration"
+                                           onchange="updateSetting('autoCalibration', this.checked)">
+                                    <label class="form-check-label" for="autoCalibration">Enable auto-calibration</label>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Calibration Pattern</div>
+                                <div class="setting-description">Type of calibration pattern to use</div>
+                                <select class="form-select" id="calibrationPattern" onchange="updateSetting('calibrationPattern', this.value)">
+                                    <option value="checkerboard" selected>Checkerboard</option>
+                                    <option value="circles">Circle Grid</option>
+                                    <option value="apriltag">AprilTag</option>
+                                </select>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Pattern Size</div>
+                                <div class="setting-description">Size of calibration pattern squares (mm)</div>
+                                <input type="number" class="form-control" id="patternSize" value="25" min="10" max="100"
+                                       onchange="updateSetting('patternSize', this.value)">
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Minimum Calibration Images</div>
+                                <div class="setting-description">Minimum number of images required for calibration</div>
+                                <input type="number" class="form-control" id="minCalibrationImages" value="10" min="5" max="50"
+                                       onchange="updateSetting('minCalibrationImages', this.value)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Storage Settings -->
+                <div id="storageSection" class="settings-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-hdd me-2"></i>Storage Configuration
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="setting-item">
+                                <div class="setting-label">Default Storage Location</div>
+                                <div class="setting-description">Default directory for recording files</div>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="storagePath" value="./recordings"
+                                           onchange="updateSetting('storagePath', this.value)">
+                                    <button class="btn btn-outline-secondary" onclick="browseStoragePath()">
+                                        <i class="fas fa-folder-open"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Auto-cleanup</div>
+                                <div class="setting-description">Automatically delete old files to free space</div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="autoCleanup"
+                                           onchange="updateSetting('autoCleanup', this.checked)">
+                                    <label class="form-check-label" for="autoCleanup">Enable auto-cleanup</label>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Cleanup Threshold</div>
+                                <div class="setting-description">Delete files when disk usage exceeds this percentage</div>
+                                <input type="number" class="form-control" id="cleanupThreshold" value="85" min="50" max="95"
+                                       onchange="updateSetting('cleanupThreshold', this.value)">
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">File Retention Period</div>
+                                <div class="setting-description">Keep files for this many days before cleanup</div>
+                                <input type="number" class="form-control" id="retentionPeriod" value="30" min="7" max="365"
+                                       onchange="updateSetting('retentionPeriod', this.value)">
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-info-circle me-2"></i>Storage Status</h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <small>Total Space:</small><br>
+                                        <strong id="totalSpace">Loading...</strong>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small>Used Space:</small><br>
+                                        <strong id="usedSpace">Loading...</strong>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small>Free Space:</small><br>
+                                        <strong id="freeSpace">Loading...</strong>
+                                    </div>
+                                </div>
+                                <div class="progress mt-2">
+                                    <div class="progress-bar" id="storageProgressBar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Backup & Security Settings -->
+                <div id="backupSection" class="settings-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-shield-alt me-2"></i>Backup & Security
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="setting-item">
+                                <div class="setting-label">Auto-backup</div>
+                                <div class="setting-description">Automatically backup settings and session data</div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="autoBackup" checked
+                                           onchange="updateSetting('autoBackup', this.checked)">
+                                    <label class="form-check-label" for="autoBackup">Enable auto-backup</label>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Backup Interval</div>
+                                <div class="setting-description">How often to create automatic backups</div>
+                                <select class="form-select" id="backupInterval" onchange="updateSetting('backupInterval', this.value)">
+                                    <option value="daily" selected>Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Backup Location</div>
+                                <div class="setting-description">Directory for storing backup files</div>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="backupPath" value="./backups"
+                                           onchange="updateSetting('backupPath', this.value)">
+                                    <button class="btn btn-outline-secondary" onclick="browseBackupPath()">
+                                        <i class="fas fa-folder-open"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <h6>Recent Backups</h6>
+                                <div id="backupList">
+                                    <!-- Backup list will be populated here -->
+                                </div>
+                                <button class="btn btn-primary me-2" onclick="createBackup()">
+                                    <i class="fas fa-save me-1"></i>Create Backup Now
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="restoreBackup()">
+                                    <i class="fas fa-upload me-1"></i>Restore from Backup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Advanced Settings -->
+                <div id="advancedSection" class="settings-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-wrench me-2"></i>Advanced Settings
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Warning:</strong> These settings are for advanced users only. Changing these values may affect system stability.
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Debug Mode</div>
+                                <div class="setting-description">Enable detailed logging for troubleshooting</div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="debugMode"
+                                           onchange="updateSetting('debugMode', this.checked)">
+                                    <label class="form-check-label" for="debugMode">Enable debug mode</label>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Log Level</div>
+                                <div class="setting-description">Minimum level for log messages</div>
+                                <select class="form-select" id="logLevel" onchange="updateSetting('logLevel', this.value)">
+                                    <option value="ERROR">Error</option>
+                                    <option value="WARNING">Warning</option>
+                                    <option value="INFO" selected>Info</option>
+                                    <option value="DEBUG">Debug</option>
+                                </select>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Memory Limit (MB)</div>
+                                <div class="setting-description">Maximum memory usage before cleanup</div>
+                                <input type="number" class="form-control" id="memoryLimit" value="1024" min="512" max="8192"
+                                       onchange="updateSetting('memoryLimit', this.value)">
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Worker Threads</div>
+                                <div class="setting-description">Number of worker threads for processing</div>
+                                <input type="number" class="form-control" id="workerThreads" value="4" min="1" max="16"
+                                       onchange="updateSetting('workerThreads', this.value)">
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-label">Configuration File</div>
+                                <div class="setting-description">Raw configuration in JSON format</div>
+                                <textarea class="form-control" id="rawConfig" rows="8" 
+                                          onchange="updateRawConfig()"></textarea>
+                                <div class="mt-2">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="formatConfig()">
+                                        <i class="fas fa-align-left me-1"></i>Format JSON
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-sm" onclick="validateConfig()">
+                                        <i class="fas fa-check me-1"></i>Validate
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Import Settings Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Import Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="settingsFile" class="form-label">Select settings file:</label>
+                        <input type="file" class="form-control" id="settingsFile" accept=".json">
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="mergeSettings">
+                        <label class="form-check-label" for="mergeSettings">
+                            Merge with existing settings (uncheck to replace all)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="performImport()">Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let currentSettings = {};
+        let settingsModified = false;
+        
+        // Initialize settings
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+            loadStorageStatus();
+            loadBackupList();
+        });
+        
+        function loadSettings() {
+            fetch('/api/settings')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        currentSettings = data.settings;
+                        populateSettings(currentSettings);
+                    } else {
+                        console.error('Failed to load settings:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading settings:', error);
+                });
+        }
+        
+        function populateSettings(settings) {
+            // Populate form fields with current settings
+            Object.keys(settings).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = settings[key];
+                    } else {
+                        element.value = settings[key];
+                    }
+                }
+            });
+            
+            // Update raw config textarea
+            document.getElementById('rawConfig').value = JSON.stringify(settings, null, 2);
+            
+            // Update compression display
+            updateCompressionDisplay(settings.compressionLevel || 5);
+        }
+        
+        function updateSetting(key, value) {
+            currentSettings[key] = value;
+            settingsModified = true;
+            
+            // Auto-save after 2 seconds of inactivity
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(() => {
+                saveSettings();
+            }, 2000);
+        }
+        
+        function updateShimmerSensors() {
+            const sensors = [];
+            if (document.getElementById('shimmerGSR').checked) sensors.push('GSR');
+            if (document.getElementById('shimmerAccel').checked) sensors.push('Accelerometer');
+            if (document.getElementById('shimmerECG').checked) sensors.push('ECG');
+            
+            updateSetting('shimmerEnabledSensors', sensors);
+        }
+        
+        function updateCompressionDisplay(value) {
+            const display = document.getElementById('compressionValue');
+            const levels = ['Very Low', 'Low', 'Low-Medium', 'Medium-Low', 'Medium', 'Medium-High', 'High-Medium', 'High', 'Very High', 'Maximum'];
+            display.textContent = `${levels[value - 1]} (${value})`;
+        }
+        
+        function updateRawConfig() {
+            try {
+                const rawConfig = document.getElementById('rawConfig').value;
+                const parsed = JSON.parse(rawConfig);
+                currentSettings = parsed;
+                populateSettings(currentSettings);
+                settingsModified = true;
+            } catch (error) {
+                alert('Invalid JSON format: ' + error.message);
+            }
+        }
+        
+        function formatConfig() {
+            try {
+                const rawConfig = document.getElementById('rawConfig').value;
+                const parsed = JSON.parse(rawConfig);
+                document.getElementById('rawConfig').value = JSON.stringify(parsed, null, 2);
+            } catch (error) {
+                alert('Invalid JSON format: ' + error.message);
+            }
+        }
+        
+        function validateConfig() {
+            try {
+                const rawConfig = document.getElementById('rawConfig').value;
+                JSON.parse(rawConfig);
+                alert('Configuration is valid!');
+            } catch (error) {
+                alert('Invalid JSON format: ' + error.message);
+            }
+        }
+        
+        function saveSettings() {
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(currentSettings)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    settingsModified = false;
+                    showNotification('Settings saved successfully', 'success');
+                } else {
+                    showNotification('Failed to save settings: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving settings:', error);
+                showNotification('Error saving settings', 'error');
+            });
+        }
+        
+        function saveAllSettings() {
+            saveSettings();
+        }
+        
+        function resetToDefaults() {
+            if (confirm('Are you sure you want to reset all settings to defaults? This cannot be undone.')) {
+                fetch('/api/settings/reset', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadSettings();
+                        showNotification('Settings reset to defaults', 'success');
+                    } else {
+                        showNotification('Failed to reset settings: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error resetting settings:', error);
+                    showNotification('Error resetting settings', 'error');
+                });
+            }
+        }
+        
+        function exportSettings() {
+            const dataStr = JSON.stringify(currentSettings, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `settings_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function importSettings() {
+            new bootstrap.Modal(document.getElementById('importModal')).show();
+        }
+        
+        function performImport() {
+            const fileInput = document.getElementById('settingsFile');
+            const mergeSettings = document.getElementById('mergeSettings').checked;
+            
+            if (fileInput.files.length === 0) {
+                alert('Please select a settings file');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const importedSettings = JSON.parse(e.target.result);
+                    
+                    if (mergeSettings) {
+                        currentSettings = {...currentSettings, ...importedSettings};
+                    } else {
+                        currentSettings = importedSettings;
+                    }
+                    
+                    populateSettings(currentSettings);
+                    saveSettings();
+                    
+                    bootstrap.Modal.getInstance(document.getElementById('importModal')).hide();
+                    showNotification('Settings imported successfully', 'success');
+                } catch (error) {
+                    alert('Invalid settings file: ' + error.message);
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        function loadStorageStatus() {
+            fetch('/api/settings/storage-status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const status = data.storage;
+                        document.getElementById('totalSpace').textContent = formatBytes(status.total);
+                        document.getElementById('usedSpace').textContent = formatBytes(status.used);
+                        document.getElementById('freeSpace').textContent = formatBytes(status.free);
+                        
+                        const usagePercent = (status.used / status.total) * 100;
+                        const progressBar = document.getElementById('storageProgressBar');
+                        progressBar.style.width = usagePercent + '%';
+                        
+                        if (usagePercent > 90) {
+                            progressBar.className = 'progress-bar bg-danger';
+                        } else if (usagePercent > 75) {
+                            progressBar.className = 'progress-bar bg-warning';
+                        } else {
+                            progressBar.className = 'progress-bar bg-success';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading storage status:', error);
+                });
+        }
+        
+        function loadBackupList() {
+            fetch('/api/settings/backups')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayBackupList(data.backups);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading backup list:', error);
+                });
+        }
+        
+        function displayBackupList(backups) {
+            const backupList = document.getElementById('backupList');
+            
+            if (backups.length === 0) {
+                backupList.innerHTML = '<p class="text-muted">No backups found</p>';
+                return;
+            }
+            
+            backupList.innerHTML = backups.slice(0, 5).map(backup => `
+                <div class="backup-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${backup.name}</strong>
+                            <br>
+                            <small class="text-muted">${formatDate(backup.date)} - ${formatBytes(backup.size)}</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="downloadBackup('${backup.name}')">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteBackup('${backup.name}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function createBackup() {
+            fetch('/api/settings/backup', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadBackupList();
+                    showNotification('Backup created successfully', 'success');
+                } else {
+                    showNotification('Failed to create backup: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating backup:', error);
+                showNotification('Error creating backup', 'error');
+            });
+        }
+        
+        function restoreBackup() {
+            // This would open a file picker for backup files
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json,.zip';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const formData = new FormData();
+                    formData.append('backup', file);
+                    
+                    fetch('/api/settings/restore', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            loadSettings();
+                            showNotification('Backup restored successfully', 'success');
+                        } else {
+                            showNotification('Failed to restore backup: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error restoring backup:', error);
+                        showNotification('Error restoring backup', 'error');
+                    });
+                }
+            };
+            input.click();
+        }
+        
+        function downloadBackup(backupName) {
+            window.open(`/api/settings/backup/${backupName}/download`);
+        }
+        
+        function deleteBackup(backupName) {
+            if (confirm(`Are you sure you want to delete backup "${backupName}"?`)) {
+                fetch(`/api/settings/backup/${backupName}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadBackupList();
+                        showNotification('Backup deleted successfully', 'success');
+                    } else {
+                        showNotification('Failed to delete backup: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting backup:', error);
+                    showNotification('Error deleting backup', 'error');
+                });
+            }
+        }
+        
+        function browseStoragePath() {
+            // This would open a directory picker
+            fetch('/api/settings/browse-directory', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ type: 'storage' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.path) {
+                    document.getElementById('storagePath').value = data.path;
+                    updateSetting('storagePath', data.path);
+                }
+            })
+            .catch(error => {
+                console.error('Error browsing directory:', error);
+            });
+        }
+        
+        function browseBackupPath() {
+            // This would open a directory picker
+            fetch('/api/settings/browse-directory', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ type: 'backup' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.path) {
+                    document.getElementById('backupPath').value = data.path;
+                    updateSetting('backupPath', data.path);
+                }
+            })
+            .catch(error => {
+                console.error('Error browsing directory:', error);
+            });
+        }
+        
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.settings-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Show selected section
+            document.getElementById(sectionName + 'Section').style.display = 'block';
+            
+            // Update navigation
+            document.querySelectorAll('.settings-nav .nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            event.target.classList.add('active');
+        }
+        
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+            notification.style.position = 'fixed';
+            notification.style.top = '20px';
+            notification.style.right = '20px';
+            notification.style.zIndex = '9999';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 5000);
+        }
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleString();
+        }
+        
+        // Warn user about unsaved changes
+        window.addEventListener('beforeunload', function(e) {
+            if (settingsModified) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
+</body>
+</html>

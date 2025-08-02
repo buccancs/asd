@@ -1,0 +1,471 @@
+{
+  "test_suite": "Python UI Integration Test",
+  "start_time": "2025-08-02T19:00:27.771028",
+  "pyqt_available": false,
+  "simulation_mode": true,
+  "tab_tests": {
+    "overall_success": true,
+    "tab_results": {
+      "Recording": {
+        "tab_name": "Recording",
+        "success": true,
+        "timestamp": "2025-08-02T19:00:27.771218",
+        "navigation_time": 0.3001091480255127
+      },
+      "Devices": {
+        "tab_name": "Devices",
+        "success": true,
+        "timestamp": "2025-08-02T19:00:28.071493",
+        "navigation_time": 0.3001065254211426
+      },
+      "Calibration": {
+        "tab_name": "Calibration",
+        "success": true,
+        "timestamp": "2025-08-02T19:00:28.371782",
+        "navigation_time": 0.3001117706298828
+      },
+      "Files": {
+        "tab_name": "Files",
+        "success": true,
+        "timestamp": "2025-08-02T19:00:28.672081",
+        "navigation_time": 0.3001224994659424
+      }
+    }
+  },
+  "button_tests": {
+    "overall_success": true,
+    "tab_button_results": {
+      "Recording": {
+        "tab_name": "Recording",
+        "button_results": {
+          "start_recording_button": {
+            "button_name": "start_recording_button",
+            "tab_name": "Recording",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:28.972461",
+            "response_time": 0.20012617111206055
+          },
+          "stop_recording_button": {
+            "button_name": "stop_recording_button",
+            "tab_name": "Recording",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:29.172780",
+            "response_time": 0.20011329650878906
+          },
+          "preview_toggle_button": {
+            "button_name": "preview_toggle_button",
+            "tab_name": "Recording",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:29.373048",
+            "response_time": 0.20010018348693848
+          },
+          "session_settings_button": {
+            "button_name": "session_settings_button",
+            "tab_name": "Recording",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:29.573337",
+            "response_time": 0.2001030445098877
+          }
+        },
+        "tab_success": true
+      },
+      "Devices": {
+        "tab_name": "Devices",
+        "button_results": {
+          "connect_pc_button": {
+            "button_name": "connect_pc_button",
+            "tab_name": "Devices",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:29.773610",
+            "response_time": 0.20011353492736816
+          },
+          "connect_android_button": {
+            "button_name": "connect_android_button",
+            "tab_name": "Devices",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:29.973896",
+            "response_time": 0.20012569427490234
+          },
+          "connect_shimmer_button": {
+            "button_name": "connect_shimmer_button",
+            "tab_name": "Devices",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:30.174210",
+            "response_time": 0.20011043548583984
+          },
+          "scan_devices_button": {
+            "button_name": "scan_devices_button",
+            "tab_name": "Devices",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:30.374515",
+            "response_time": 0.20010900497436523
+          },
+          "refresh_devices_button": {
+            "button_name": "refresh_devices_button",
+            "tab_name": "Devices",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:30.574811",
+            "response_time": 0.20013856887817383
+          }
+        },
+        "tab_success": true
+      },
+      "Calibration": {
+        "tab_name": "Calibration",
+        "button_results": {
+          "start_calibration_button": {
+            "button_name": "start_calibration_button",
+            "tab_name": "Calibration",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:30.775138",
+            "response_time": 0.2001209259033203
+          },
+          "load_calibration_button": {
+            "button_name": "load_calibration_button",
+            "tab_name": "Calibration",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:30.975466",
+            "response_time": 0.2001047134399414
+          },
+          "save_calibration_button": {
+            "button_name": "save_calibration_button",
+            "tab_name": "Calibration",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:31.175750",
+            "response_time": 0.20011043548583984
+          },
+          "calibration_settings_button": {
+            "button_name": "calibration_settings_button",
+            "tab_name": "Calibration",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:31.376032",
+            "response_time": 0.20010590553283691
+          },
+          "view_results_button": {
+            "button_name": "view_results_button",
+            "tab_name": "Calibration",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:31.576341",
+            "response_time": 0.2001047134399414
+          }
+        },
+        "tab_success": true
+      },
+      "Files": {
+        "tab_name": "Files",
+        "button_results": {
+          "export_data_button": {
+            "button_name": "export_data_button",
+            "tab_name": "Files",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:31.776621",
+            "response_time": 0.2001183032989502
+          },
+          "open_folder_button": {
+            "button_name": "open_folder_button",
+            "tab_name": "Files",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:31.976927",
+            "response_time": 0.20010685920715332
+          },
+          "delete_session_button": {
+            "button_name": "delete_session_button",
+            "tab_name": "Files",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:32.177216",
+            "response_time": 0.2001032829284668
+          },
+          "browse_files_button": {
+            "button_name": "browse_files_button",
+            "tab_name": "Files",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:32.377466",
+            "response_time": 0.2001047134399414
+          },
+          "compress_files_button": {
+            "button_name": "compress_files_button",
+            "tab_name": "Files",
+            "success": true,
+            "timestamp": "2025-08-02T19:00:32.577763",
+            "response_time": 0.2001054286956787
+          }
+        },
+        "tab_success": true
+      }
+    }
+  },
+  "navigation_tests": {
+    "overall_success": true,
+    "flow_results": {
+      "flow_sequence_1": {
+        "sequence": [
+          "Recording",
+          "Devices",
+          "Calibration",
+          "Files"
+        ],
+        "success": true,
+        "timestamp": "2025-08-02T19:00:32.778097",
+        "total_time": 1.2004787921905518,
+        "step_results": [
+          {
+            "step": 1,
+            "target_tab": "Recording",
+            "success": true,
+            "step_time": 0.3001067638397217
+          },
+          {
+            "step": 2,
+            "target_tab": "Devices",
+            "success": true,
+            "step_time": 0.3001234531402588
+          },
+          {
+            "step": 3,
+            "target_tab": "Calibration",
+            "success": true,
+            "step_time": 0.3001062870025635
+          },
+          {
+            "step": 4,
+            "target_tab": "Files",
+            "success": true,
+            "step_time": 0.3001096248626709
+          }
+        ]
+      },
+      "flow_sequence_2": {
+        "sequence": [
+          "Files",
+          "Calibration",
+          "Devices",
+          "Recording"
+        ],
+        "success": true,
+        "timestamp": "2025-08-02T19:00:33.978739",
+        "total_time": 1.200483798980713,
+        "step_results": [
+          {
+            "step": 1,
+            "target_tab": "Files",
+            "success": true,
+            "step_time": 0.3001065254211426
+          },
+          {
+            "step": 2,
+            "target_tab": "Calibration",
+            "success": true,
+            "step_time": 0.30010008811950684
+          },
+          {
+            "step": 3,
+            "target_tab": "Devices",
+            "success": true,
+            "step_time": 0.3001089096069336
+          },
+          {
+            "step": 4,
+            "target_tab": "Recording",
+            "success": true,
+            "step_time": 0.3001394271850586
+          }
+        ]
+      },
+      "flow_sequence_3": {
+        "sequence": [
+          "Recording",
+          "Calibration",
+          "Recording"
+        ],
+        "success": true,
+        "timestamp": "2025-08-02T19:00:35.179420",
+        "total_time": 0.9003355503082275,
+        "step_results": [
+          {
+            "step": 1,
+            "target_tab": "Recording",
+            "success": true,
+            "step_time": 0.3001103401184082
+          },
+          {
+            "step": 2,
+            "target_tab": "Calibration",
+            "success": true,
+            "step_time": 0.30011725425720215
+          },
+          {
+            "step": 3,
+            "target_tab": "Recording",
+            "success": true,
+            "step_time": 0.30008769035339355
+          }
+        ]
+      },
+      "flow_sequence_4": {
+        "sequence": [
+          "Devices",
+          "Files",
+          "Devices"
+        ],
+        "success": true,
+        "timestamp": "2025-08-02T19:00:36.079900",
+        "total_time": 0.9003424644470215,
+        "step_results": [
+          {
+            "step": 1,
+            "target_tab": "Devices",
+            "success": true,
+            "step_time": 0.3001060485839844
+          },
+          {
+            "step": 2,
+            "target_tab": "Files",
+            "success": true,
+            "step_time": 0.3001091480255127
+          },
+          {
+            "step": 3,
+            "target_tab": "Devices",
+            "success": true,
+            "step_time": 0.300107479095459
+          }
+        ]
+      }
+    }
+  },
+  "menu_tests": {
+    "overall_success": true,
+    "menu_results": {
+      "file_menu": {
+        "menu_name": "file_menu",
+        "success": true,
+        "timestamp": "2025-08-02T19:00:36.980466"
+      },
+      "edit_menu": {
+        "menu_name": "edit_menu",
+        "success": true,
+        "timestamp": "2025-08-02T19:00:37.080684"
+      },
+      "view_menu": {
+        "menu_name": "view_menu",
+        "success": true,
+        "timestamp": "2025-08-02T19:00:37.180891"
+      },
+      "tools_menu": {
+        "menu_name": "tools_menu",
+        "success": true,
+        "timestamp": "2025-08-02T19:00:37.281144"
+      },
+      "help_menu": {
+        "menu_name": "help_menu",
+        "success": true,
+        "timestamp": "2025-08-02T19:00:37.381425"
+      }
+    }
+  },
+  "indicator_tests": {
+    "overall_success": true,
+    "indicator_results": {
+      "Recording_recording_status_indicator": {
+        "indicator_name": "recording_status_indicator",
+        "tab_name": "Recording",
+        "success": true,
+        "visible": true,
+        "timestamp": "2025-08-02T19:00:37.481763"
+      },
+      "Recording_preview_status_indicator": {
+        "indicator_name": "preview_status_indicator",
+        "tab_name": "Recording",
+        "success": true,
+        "visible": true,
+        "timestamp": "2025-08-02T19:00:37.481849"
+      },
+      "Recording_storage_space_indicator": {
+        "indicator_name": "storage_space_indicator",
+        "tab_name": "Recording",
+        "success": true,
+        "visible": true,
+        "timestamp": "2025-08-02T19:00:37.481909"
+      },
+      "Devices_pc_connection_indicator": {
+        "indicator_name": "pc_connection_indicator",
+        "tab_name": "Devices",
+        "success": true,
+        "visible": true,
+        "timestamp": "2025-08-02T19:00:37.481960"
+      },
+      "Devices_android_connection_indicator": {
+        "indicator_name": "android_connection_indicator",
+        "tab_name": "Devices",
+        "success": true,
+        "visible": true,
+        "timestamp": "2025-08-02T19:00:37.482006"
+      },
+      "Devices_shimmer_connection_indicator": {
+        "indicator_name": "shimmer_connection_indicator",
+        "tab_name": "Devices",
+        "success": true,
+        "visible": true,
+        "timestamp": "2025-08-02T19:00:37.482051"
+      },
+      "Devices_device_count_indicator": {
+        "indicator_name": "device_count_indicator",
+        "tab_name": "Devices",
+        "success": true,
+        "visible": true,
+        "timestamp": "2025-08-02T19:00:37.482094"
+      },
+      "Calibration_calibration_status_indicator": {
+        "indicator_name": "calibration_status_indicator",
+        "tab_name": "Calibration",
+        "success": true,
+        "visible": true,
+        "timestamp": "2025-08-02T19:00:37.482137"
+      },
+      "Calibration_calibration_progress_indicator": {
+        "indicator_name": "calibration_progress_indicator",
+        "tab_name": "Calibration",
+        "success": true,
+        "visible": true,
+        "timestamp": "2025-08-02T19:00:37.482182"
+      },
+      "Calibration_calibration_quality_indicator": {
+        "indicator_name": "calibration_quality_indicator",
+        "tab_name": "Calibration",
+        "success": true,
+        "visible": true,
+        "timestamp": "2025-08-02T19:00:37.482225"
+      },
+      "Files_file_count_indicator": {
+        "indicator_name": "file_count_indicator",
+        "tab_name": "Files",
+        "success": true,
+        "visible": true,
+        "timestamp": "2025-08-02T19:00:37.482260"
+      },
+      "Files_storage_usage_indicator": {
+        "indicator_name": "storage_usage_indicator",
+        "tab_name": "Files",
+        "success": true,
+        "visible": true,
+        "timestamp": "2025-08-02T19:00:37.482325"
+      },
+      "Files_export_status_indicator": {
+        "indicator_name": "export_status_indicator",
+        "tab_name": "Files",
+        "success": true,
+        "visible": true,
+        "timestamp": "2025-08-02T19:00:37.482363"
+      }
+    }
+  },
+  "overall_success": true,
+  "summary": {
+    "total_tests": 45,
+    "passed_tests": 45,
+    "failed_tests": 0,
+    "success_rate": 100.0
+  },
+  "end_time": "2025-08-02T19:00:37.482721",
+  "total_duration": 9.711612
+}

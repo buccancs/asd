@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Sensor Recording Dashboard - Playback</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.min.js"></script>
+    <!-- Socket.IO for real-time communication -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --dark-bg: #34495e;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--dark-bg));
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: white !important;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .video-player {
+            width: 100%;
+            max-height: 400px;
+            background: #000;
+            border-radius: 8px;
+        }
+        
+        .playback-controls {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .timeline-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .sensor-chart {
+            height: 200px;
+            margin: 10px 0;
+        }
+        
+        .speed-control {
+            display: inline-block;
+            margin: 0 10px;
+        }
+        
+        .session-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .session-item {
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 5px 0;
+            transition: background-color 0.2s;
+        }
+        
+        .session-item:hover {
+            background-color: #e9ecef;
+        }
+        
+        .session-item.selected {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .sync-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .sync-indicator.synced {
+            background-color: var(--success-color);
+        }
+        
+        .sync-indicator.desynced {
+            background-color: var(--danger-color);
+        }
+        
+        .real-time-indicator {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: var(--success-color);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        
+        .real-time-indicator.disconnected {
+            background: var(--danger-color);
+        }
+        
+        @media (max-width: 768px) {
+            .video-player {
+                max-height: 250px;
+            }
+            
+            .sensor-chart {
+                height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Multi-Sensor Recording Dashboard
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/devices">
+                            <i class="fas fa-devices me-1"></i>Devices
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/sessions">
+                            <i class="fas fa-history me-1"></i>Sessions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/playback">
+                            <i class="fas fa-play me-1"></i>Playback
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/files">
+                            <i class="fas fa-folder me-1"></i>File Viewer
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/settings">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Real-time connection indicator -->
+    <div id="connectionIndicator" class="real-time-indicator">
+        <i class="fas fa-wifi me-1"></i>
+        <span id="connectionStatus">Connected</span>
+    </div>
+    
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Session Selection Panel -->
+            <div class="col-lg-3 col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>Recorded Sessions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="session-list" id="sessionList">
+                            <!-- Sessions will be populated here -->
+                        </div>
+                        <button class="btn btn-primary btn-sm mt-2" onclick="refreshSessions()">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Session Info Panel -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Session Info
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="sessionInfo">
+                            <p class="text-muted">Select a session to view details</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Playback Panel -->
+            <div class="col-lg-9 col-md-8">
+                <!-- Video Playback -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-video me-2"></i>Video Playback
+                        </h5>
+                        <div>
+                            <span class="sync-indicator synced" id="syncIndicator"></span>
+                            <span id="syncStatus">Synchronized</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Camera 1 (Android)</h6>
+                                <video class="video-player" id="videoPlayer1" controls>
+                                    <source src="" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Camera 2 (Webcam)</h6>
+                                <video class="video-player" id="videoPlayer2" controls>
+                                    <source src="" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                        </div>
+                        
+                        <!-- Playback Controls -->
+                        <div class="playback-controls">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="d-flex align-items-center">
+                                        <button class="btn btn-primary me-2" id="playPauseBtn" onclick="togglePlayback()">
+                                            <i class="fas fa-play" id="playPauseIcon"></i>
+                                        </button>
+                                        <button class="btn btn-secondary me-2" onclick="stopPlayback()">
+                                            <i class="fas fa-stop"></i>
+                                        </button>
+                                        <div class="speed-control">
+                                            <label for="speedSelect" class="form-label me-2">Speed:</label>
+                                            <select class="form-select form-select-sm d-inline" id="speedSelect" style="width: auto;" onchange="changePlaybackSpeed()">
+                                                <option value="0.5">0.5x</option>
+                                                <option value="1" selected>1x</option>
+                                                <option value="1.5">1.5x</option>
+                                                <option value="2">2x</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <span id="currentTime">00:00</span> / <span id="totalTime">00:00</span>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <input type="range" class="form-range timeline-slider" id="timelineSlider" 
+                                           min="0" max="100" value="0" oninput="seekTo(this.value)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sensor Data Visualization -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i>Sensor Data Playback
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>GSR Data</h6>
+                                <canvas id="gsrChart" class="sensor-chart"></canvas>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Thermal Data</h6>
+                                <canvas id="thermalChart" class="sensor-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <h6>Shimmer GSR</h6>
+                                <canvas id="shimmerChart" class="sensor-chart"></canvas>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Heart Rate</h6>
+                                <canvas id="heartRateChart" class="sensor-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Export & Analysis Tools -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-tools me-2"></i>Analysis Tools
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <button class="btn btn-outline-primary w-100" onclick="exportSegment()">
+                                    <i class="fas fa-cut me-1"></i>Export Segment
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-outline-success w-100" onclick="generateReport()">
+                                    <i class="fas fa-chart-bar me-1"></i>Generate Report
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-outline-info w-100" onclick="syncAnalysis()">
+                                    <i class="fas fa-sync me-1"></i>Sync Analysis
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Playback state
+        let currentSession = null;
+        let isPlaying = false;
+        let currentTime = 0;
+        let totalDuration = 0;
+        let gsrChart, thermalChart, shimmerChart, heartRateChart;
+        
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            loadSessions();
+            
+            // Update time display every second during playback
+            setInterval(updateTimeDisplay, 1000);
+        });
+        
+        function initializeCharts() {
+            const chartConfig = {
+                type: 'line',
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: 'Time (seconds)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Value'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            };
+            
+            gsrChart = new Chart(document.getElementById('gsrChart'), {
+                ...chartConfig,
+                data: {
+                    datasets: [{
+                        label: 'GSR',
+                        data: [],
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        tension: 0.4
+                    }]
+                }
+            });
+            
+            thermalChart = new Chart(document.getElementById('thermalChart'), {
+                ...chartConfig,
+                data: {
+                    datasets: [{
+                        label: 'Temperature',
+                        data: [],
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        tension: 0.4
+                    }]
+                }
+            });
+            
+            shimmerChart = new Chart(document.getElementById('shimmerChart'), {
+                ...chartConfig,
+                data: {
+                    datasets: [{
+                        label: 'Shimmer GSR',
+                        data: [],
+                        borderColor: '#27ae60',
+                        backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                        tension: 0.4
+                    }]
+                }
+            });
+            
+            heartRateChart = new Chart(document.getElementById('heartRateChart'), {
+                ...chartConfig,
+                data: {
+                    datasets: [{
+                        label: 'Heart Rate',
+                        data: [],
+                        borderColor: '#f39c12',
+                        backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                        tension: 0.4
+                    }]
+                }
+            });
+        }
+        
+        function loadSessions() {
+            fetch('/api/playback/sessions')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displaySessions(data.sessions);
+                    } else {
+                        console.error('Failed to load sessions:', data.error);
+                        displaySessions([]);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading sessions:', error);
+                    displaySessions([]);
+                });
+        }
+        
+        function displaySessions(sessions) {
+            const sessionList = document.getElementById('sessionList');
+            
+            if (sessions.length === 0) {
+                sessionList.innerHTML = '<p class="text-muted">No recorded sessions found</p>';
+                return;
+            }
+            
+            sessionList.innerHTML = sessions.map(session => `
+                <div class="session-item" onclick="selectSession('${session.id}')">
+                    <strong>${session.name || session.id}</strong>
+                    <br>
+                    <small class="text-muted">
+                        ${formatDate(session.start_time)} - ${formatDuration(session.duration)}
+                    </small>
+                    <br>
+                    <small class="text-info">${session.devices.length} devices</small>
+                </div>
+            `).join('');
+        }
+        
+        function selectSession(sessionId) {
+            // Remove previous selection
+            document.querySelectorAll('.session-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Add selection to clicked item
+            event.target.closest('.session-item').classList.add('selected');
+            
+            // Load session data
+            loadSessionData(sessionId);
+        }
+        
+        function loadSessionData(sessionId) {
+            fetch(`/api/playback/session/${sessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        currentSession = data.session;
+                        displaySessionInfo(currentSession);
+                        loadVideoFiles(sessionId);
+                        loadSensorData(sessionId);
+                    } else {
+                        console.error('Failed to load session data:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading session data:', error);
+                });
+        }
+        
+        function displaySessionInfo(session) {
+            const sessionInfo = document.getElementById('sessionInfo');
+            sessionInfo.innerHTML = `
+                <h6>${session.name || session.id}</h6>
+                <p><strong>Duration:</strong> ${formatDuration(session.duration)}</p>
+                <p><strong>Start Time:</strong> ${formatDate(session.start_time)}</p>
+                <p><strong>Devices:</strong> ${session.devices.join(', ')}</p>
+                <p><strong>Status:</strong> <span class="badge bg-success">${session.status}</span></p>
+                <p><strong>Data Size:</strong> ${session.data_size}</p>
+            `;
+        }
+        
+        function loadVideoFiles(sessionId) {
+            fetch(`/api/playback/session/${sessionId}/videos`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.videos.length > 0) {
+                        const video1 = document.getElementById('videoPlayer1');
+                        const video2 = document.getElementById('videoPlayer2');
+                        
+                        if (data.videos[0]) {
+                            video1.src = `/api/playback/video/${sessionId}/${data.videos[0].filename}`;
+                            totalDuration = data.videos[0].duration || 0;
+                        }
+                        
+                        if (data.videos[1]) {
+                            video2.src = `/api/playback/video/${sessionId}/${data.videos[1].filename}`;
+                        }
+                        
+                        // Set up video synchronization
+                        setupVideoSync();
+                        updateTotalTime();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading video files:', error);
+                });
+        }
+        
+        function loadSensorData(sessionId) {
+            fetch(`/api/playback/session/${sessionId}/sensors`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateChartData(data.sensor_data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading sensor data:', error);
+                });
+        }
+        
+        function updateChartData(sensorData) {
+            if (sensorData.gsr) {
+                gsrChart.data.datasets[0].data = sensorData.gsr;
+                gsrChart.update();
+            }
+            
+            if (sensorData.thermal) {
+                thermalChart.data.datasets[0].data = sensorData.thermal;
+                thermalChart.update();
+            }
+            
+            if (sensorData.shimmer) {
+                shimmerChart.data.datasets[0].data = sensorData.shimmer;
+                shimmerChart.update();
+            }
+            
+            if (sensorData.heart_rate) {
+                heartRateChart.data.datasets[0].data = sensorData.heart_rate;
+                heartRateChart.update();
+            }
+        }
+        
+        function setupVideoSync() {
+            const video1 = document.getElementById('videoPlayer1');
+            const video2 = document.getElementById('videoPlayer2');
+            
+            // Synchronize video playback
+            video1.addEventListener('play', () => {
+                if (!video2.paused) return;
+                video2.currentTime = video1.currentTime;
+                video2.play();
+            });
+            
+            video1.addEventListener('pause', () => {
+                video2.pause();
+            });
+            
+            video1.addEventListener('seeked', () => {
+                video2.currentTime = video1.currentTime;
+            });
+        }
+        
+        function togglePlayback() {
+            const video1 = document.getElementById('videoPlayer1');
+            const video2 = document.getElementById('videoPlayer2');
+            const playPauseIcon = document.getElementById('playPauseIcon');
+            
+            if (isPlaying) {
+                video1.pause();
+                video2.pause();
+                playPauseIcon.className = 'fas fa-play';
+                isPlaying = false;
+            } else {
+                video1.play();
+                video2.play();
+                playPauseIcon.className = 'fas fa-pause';
+                isPlaying = true;
+            }
+        }
+        
+        function stopPlayback() {
+            const video1 = document.getElementById('videoPlayer1');
+            const video2 = document.getElementById('videoPlayer2');
+            const playPauseIcon = document.getElementById('playPauseIcon');
+            
+            video1.pause();
+            video2.pause();
+            video1.currentTime = 0;
+            video2.currentTime = 0;
+            playPauseIcon.className = 'fas fa-play';
+            isPlaying = false;
+            currentTime = 0;
+            updateTimeDisplay();
+        }
+        
+        function changePlaybackSpeed() {
+            const speed = parseFloat(document.getElementById('speedSelect').value);
+            const video1 = document.getElementById('videoPlayer1');
+            const video2 = document.getElementById('videoPlayer2');
+            
+            video1.playbackRate = speed;
+            video2.playbackRate = speed;
+        }
+        
+        function seekTo(percentage) {
+            const video1 = document.getElementById('videoPlayer1');
+            const video2 = document.getElementById('videoPlayer2');
+            const seekTime = (percentage / 100) * totalDuration;
+            
+            video1.currentTime = seekTime;
+            video2.currentTime = seekTime;
+            currentTime = seekTime;
+            updateTimeDisplay();
+        }
+        
+        function updateTimeDisplay() {
+            const video1 = document.getElementById('videoPlayer1');
+            if (video1 && !isNaN(video1.duration)) {
+                currentTime = video1.currentTime;
+                totalDuration = video1.duration;
+                
+                document.getElementById('currentTime').textContent = formatTime(currentTime);
+                document.getElementById('totalTime').textContent = formatTime(totalDuration);
+                
+                // Update timeline slider
+                const progress = (currentTime / totalDuration) * 100;
+                document.getElementById('timelineSlider').value = progress || 0;
+            }
+        }
+        
+        function updateTotalTime() {
+            const video1 = document.getElementById('videoPlayer1');
+            video1.addEventListener('loadedmetadata', () => {
+                totalDuration = video1.duration;
+                document.getElementById('totalTime').textContent = formatTime(totalDuration);
+            });
+        }
+        
+        function exportSegment() {
+            if (!currentSession) {
+                alert('Please select a session first');
+                return;
+            }
+            
+            const startTime = prompt('Enter start time (seconds):');
+            const endTime = prompt('Enter end time (seconds):');
+            
+            if (startTime && endTime) {
+                fetch('/api/playback/export-segment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session_id: currentSession.id,
+                        start_time: parseFloat(startTime),
+                        end_time: parseFloat(endTime)
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Segment exported successfully!');
+                    } else {
+                        alert('Export failed: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Export error:', error);
+                    alert('Export failed');
+                });
+            }
+        }
+        
+        function generateReport() {
+            if (!currentSession) {
+                alert('Please select a session first');
+                return;
+            }
+            
+            window.open(`/api/playback/session/${currentSession.id}/report`, '_blank');
+        }
+        
+        function syncAnalysis() {
+            if (!currentSession) {
+                alert('Please select a session first');
+                return;
+            }
+            
+            fetch(`/api/playback/session/${currentSession.id}/sync-analysis`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const syncStatus = document.getElementById('syncStatus');
+                        const syncIndicator = document.getElementById('syncIndicator');
+                        
+                        if (data.analysis.sync_quality > 0.8) {
+                            syncStatus.textContent = 'Well Synchronized';
+                            syncIndicator.className = 'sync-indicator synced';
+                        } else {
+                            syncStatus.textContent = 'Sync Issues Detected';
+                            syncIndicator.className = 'sync-indicator desynced';
+                        }
+                        
+                        alert(`Sync analysis complete. Quality: ${(data.analysis.sync_quality * 100).toFixed(1)}%`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Sync analysis error:', error);
+                });
+        }
+        
+        function refreshSessions() {
+            loadSessions();
+        }
+        
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleString();
+        }
+        
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else {
+                return `${minutes}:${secs.toString().padStart(2, '0')}`;
+            }
+        }
+        
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>
