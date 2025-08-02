@@ -43,8 +43,7 @@ class MainActivityCoordinator @Inject constructor(
     private val calibrationController: CalibrationController,
     private val networkController: NetworkController,
     private val statusDisplayController: StatusDisplayController,
-    private val uiController: UIController,
-    private val menuController: MenuController
+    private val uiController: UIController
 ) {
     
     companion object {
@@ -629,73 +628,10 @@ class MainActivityCoordinator @Inject constructor(
     
     /**
      * Setup MenuController with callback
+     * Note: MenuController removed in new Material Design 3 UI
      */
     private fun setupMenuController() {
-        menuController.setCallback(object : MenuController.MenuCallback {
-            override fun onMenuItemSelected(itemId: Int): Boolean {
-                android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] Menu item selected: $itemId")
-                return true
-            }
-            
-            override fun onAboutDialogRequested() {
-                android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] About dialog requested")
-            }
-            
-            override fun onSettingsRequested() {
-                android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] Settings requested")
-            }
-            
-            override fun onNetworkConfigRequested() {
-                android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] Network config requested")
-            }
-            
-            override fun onFileBrowserRequested() {
-                android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] File browser requested")
-            }
-            
-            override fun onShimmerConfigRequested() {
-                android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] Shimmer config requested")
-            }
-            
-            override fun onSyncTestRequested(testType: MenuController.SyncTestType) {
-                android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] Sync test requested: $testType")
-                // Coordinate with CalibrationController for sync tests
-                when (testType) {
-                    MenuController.SyncTestType.FLASH_SYNC -> {
-                        callback?.showToast("Flash sync test requires lifecycleScope from MainActivity", Toast.LENGTH_SHORT)
-                        android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] Flash sync test requested - requires MainActivity to call testFlashSync() directly")
-                    }
-                    MenuController.SyncTestType.BEEP_SYNC -> {
-                        calibrationController.testBeepSync()
-                    }
-                    MenuController.SyncTestType.CLOCK_SYNC -> {
-                        callback?.showToast("Clock sync test requires lifecycleScope from MainActivity", Toast.LENGTH_SHORT)
-                        android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] Clock sync test requested - requires MainActivity to call testClockSync() directly")
-                    }
-                }
-            }
-            
-            override fun onSyncStatusRequested() {
-                android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] Sync status requested")
-                calibrationController.showSyncStatus()
-            }
-            
-            override fun onMenuError(message: String) {
-                callback?.showToast("Menu Error: $message", Toast.LENGTH_LONG)
-            }
-            
-            override fun updateStatusText(text: String) {
-                callback?.updateStatusText(text)
-            }
-            
-            override fun showToast(message: String, duration: Int) {
-                callback?.showToast(message, duration)
-            }
-            
-            override fun getContext(): android.content.Context {
-                return callback?.getContext() ?: throw IllegalStateException("Context not available")
-            }
-        })
+        android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] MenuController not used in new UI")
     }
     
     // ========== Coordinated Feature Operations ==========
@@ -840,18 +776,20 @@ class MainActivityCoordinator @Inject constructor(
     
     /**
      * Create options menu through coordinator
+     * Note: Options menu not used in new Material Design 3 UI
      */
     fun createOptionsMenu(menu: android.view.Menu, activity: Activity): Boolean {
-        android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] Coordinating options menu creation")
-        return menuController.createOptionsMenu(menu, activity)
+        android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] Options menu not used in new UI")
+        return false
     }
     
     /**
      * Handle options menu item selection through coordinator
+     * Note: Options menu not used in new Material Design 3 UI
      */
     fun handleOptionsItemSelected(item: android.view.MenuItem): Boolean {
-        android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] Coordinating menu item selection")
-        return menuController.handleOptionsItemSelected(item)
+        android.util.Log.d("MainActivityCoordinator", "[DEBUG_LOG] Options menu not used in new UI")
+        return false
     }
     
     /**
@@ -1159,7 +1097,7 @@ class MainActivityCoordinator @Inject constructor(
             networkController.cleanup()
             statusDisplayController.cleanup()
             uiController.cleanup()
-            menuController.cleanup()
+            // Note: menuController removed in new Material Design 3 UI
             
             // Controllers without explicit cleanup methods can be reset through their own methods
             permissionController.resetState()

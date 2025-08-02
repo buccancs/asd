@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Multi-Sensor Recording</string>
+    <string name="app_description">A comprehensive data collection system for multi-sensor research applications, featuring synchronized recording of camera, thermal, and physiological sensor data.</string>
     
     <!-- Navigation -->
     <string name="nav_header_title">Multi-Sensor Recording</string>

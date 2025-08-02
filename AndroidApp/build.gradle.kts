@@ -53,6 +53,7 @@ android {
         debug {
             isMinifyEnabled = false
             buildConfigField("String", "BUILD_TYPE", "\"debug\"")
+            buildConfigField("String", "BUILD_TIME", "\"${System.currentTimeMillis()}\"")
             enableUnitTestCoverage = true
             enableAndroidTestCoverage = true
             ndk {
@@ -64,6 +65,7 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             buildConfigField("String", "BUILD_TYPE", "\"release\"")
+            buildConfigField("String", "BUILD_TIME", "\"${System.currentTimeMillis()}\"")
             ndk {
                 debugSymbolLevel = "SYMBOL_TABLE"
             }
@@ -72,6 +74,7 @@ android {
             initWith(getByName("debug"))
             isDebuggable = false
             buildConfigField("String", "BUILD_TYPE", "\"staging\"")
+            buildConfigField("String", "BUILD_TIME", "\"${System.currentTimeMillis()}\"")
         }
     }
 

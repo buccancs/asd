@@ -27,6 +27,7 @@
     <color name="md_theme_surface">#FCFDF7</color>
     <color name="md_theme_on_surface">#1A1C19</color>
     <color name="md_theme_surface_variant">#DDE5DB</color>
+    <color name="md_theme_light_surfaceVariant">#DDE5DB</color>
     <color name="md_theme_on_surface_variant">#414942</color>
     
     <color name="md_theme_outline">#717971</color>

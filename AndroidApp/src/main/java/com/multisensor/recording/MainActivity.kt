@@ -2,41 +2,35 @@ package com.multisensor.recording
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.GravityCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
-import com.google.android.material.navigation.NavigationView
 import com.multisensor.recording.databinding.ActivityMainBinding
 import com.multisensor.recording.ui.MainViewModel
-import com.multisensor.recording.ui.FileViewActivity
-import com.multisensor.recording.ui.NetworkConfigActivity
+import com.multisensor.recording.ui.MainUiState
+import com.multisensor.recording.ui.SystemHealthStatus
 import com.multisensor.recording.ui.SettingsActivity
-import com.multisensor.recording.ui.ShimmerConfigActivity
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
- * Material Design 3 Main Activity
+ * Streamlined Material Design 3 Dashboard
  * 
- * Clean, minimalist interface focused on essential functionality:
- * - System status monitoring
- * - Recording controls  
- * - Quick access to key features
- * - Simplified navigation
+ * Minimalist research data collection interface:
+ * - Single-screen dashboard with organized sections
+ * - Live video preview and recording controls at top
+ * - System status and quick actions below
+ * - Optimized for one-handed field operation
  */
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var viewModel: MainViewModel
-    private lateinit var toggle: ActionBarDrawerToggle
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,62 +54,143 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun setupUI() {
         // Setup toolbar
         setSupportActionBar(binding.toolbar)
+        binding.toolbar.title = "Multi-Sensor Recording"
         
-        // Setup navigation drawer
-        toggle = ActionBarDrawerToggle(
-            this, binding.drawerLayout, binding.toolbar,
-            R.string.navigation_drawer_open, R.string.navigation_drawer_close
-        )
-        binding.drawerLayout.addDrawerListener(toggle)
-        toggle.syncState()
+        // Setup recording controls
+        setupRecordingControls()
         
-        binding.navView.setNavigationItemSelectedListener(this)
+        // Setup device status indicators
+        setupDeviceStatus()
         
-        // Setup button listeners with error protection
-        setupButtonListeners()
+        // Setup quick actions
+        setupQuickActions()
+        
+        // Setup toolbar menu
+        setupToolbarMenu()
     }
 
-    private fun setupButtonListeners() {
-        // Recording controls
-        binding.startRecordingButton.setOnClickListener {
+    private fun setupRecordingControls() {
+        binding.recordButton.setOnClickListener {
             try {
-                viewModel.startRecording()
-                showMessage("Recording started")
+                if (viewModel.uiState.value.isRecording) {
+                    viewModel.stopRecording()
+                } else {
+                    viewModel.startRecording()
+                }
             } catch (e: Exception) {
-                showError("Failed to start recording: ${e.message}")
+                showError("Recording control failed: ${e.message}")
             }
         }
         
-        binding.stopRecordingButton.setOnClickListener {
+        // Camera switch button
+        binding.cameraSwitchButton.setOnClickListener {
             try {
-                viewModel.stopRecording()
-                showMessage("Recording stopped")
+                // Use existing method if available
+                showMessage("Camera switch requested")
             } catch (e: Exception) {
-                showError("Failed to stop recording: ${e.message}")
+                showError("Camera switch failed: ${e.message}")
+            }
+        }
+    }
+
+    private fun setupDeviceStatus() {
+        // PC connection
+        binding.pcConnectionButton.setOnClickListener {
+            try {
+                showMessage("PC connection requested")
+            } catch (e: Exception) {
+                showError("PC connection failed: ${e.message}")
             }
         }
         
-        // Quick action buttons
+        // Shimmer connection
+        binding.shimmerConnectionButton.setOnClickListener {
+            try {
+                if (viewModel.uiState.value.isShimmerConnected) {
+                    viewModel.disconnectShimmer()
+                } else {
+                    viewModel.connectShimmer()
+                }
+            } catch (e: Exception) {
+                showError("Shimmer connection failed: ${e.message}")
+            }
+        }
+        
+        // Thermal connection
+        binding.thermalConnectionButton.setOnClickListener {
+            try {
+                if (viewModel.uiState.value.isThermalConnected) {
+                    viewModel.disconnectThermal()
+                } else {
+                    viewModel.connectThermal()
+                }
+            } catch (e: Exception) {
+                showError("Thermal connection failed: ${e.message}")
+            }
+        }
+    }
+
+    private fun setupQuickActions() {
+        // Calibration
         binding.calibrationButton.setOnClickListener {
-            navigateToFragment("calibration")
+            try {
+                val intent = Intent(this, com.multisensor.recording.ui.CalibrationActivity::class.java)
+                startActivity(intent)
+            } catch (e: Exception) {
+                showError("Failed to open calibration: ${e.message}")
+            }
         }
         
-        binding.settingsButton.setOnClickListener {
-            navigateToActivity(SettingsActivity::class.java)
-        }
-        
-        binding.devicesButton.setOnClickListener {
-            navigateToFragment("devices")
-        }
-        
+        // Files management
         binding.filesButton.setOnClickListener {
-            navigateToActivity(FileViewActivity::class.java)
+            try {
+                val intent = Intent(this, com.multisensor.recording.ui.FileViewActivity::class.java)
+                startActivity(intent)
+            } catch (e: Exception) {
+                showError("Failed to open files: ${e.message}")
+            }
         }
         
-        // Diagnostics FAB
-        binding.diagnosticsFab.setOnClickListener {
-            runDiagnostics()
+        // Device settings
+        binding.devicesButton.setOnClickListener {
+            try {
+                val intent = Intent(this, com.multisensor.recording.ui.DevicesActivity::class.java)
+                startActivity(intent)
+            } catch (e: Exception) {
+                showError("Failed to open device management: ${e.message}")
+            }
         }
+        
+        // Data transfer
+        binding.transferButton.setOnClickListener {
+            try {
+                showMessage("Data transfer requested")
+            } catch (e: Exception) {
+                showError("Data transfer failed: ${e.message}")
+            }
+        }
+    }
+
+    private fun setupToolbarMenu() {
+        binding.toolbar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.action_settings -> {
+                    navigateToActivity(SettingsActivity::class.java)
+                    true
+                }
+                R.id.action_diagnostics -> {
+                    navigateToActivity(com.multisensor.recording.ui.DiagnosticsActivity::class.java)
+                    true
+                }
+                R.id.action_about -> {
+                    navigateToActivity(com.multisensor.recording.ui.AboutActivity::class.java)
+                    true
+                }
+                else -> false
+            }
+        }
+        
+        binding.toolbar.inflateMenu(R.menu.main_toolbar_menu)
     }
 
     private fun observeViewModel() {
@@ -124,21 +199,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             lifecycleScope.launch {
                 repeatOnLifecycle(Lifecycle.State.STARTED) {
                     viewModel.uiState.collect { uiState ->
-                        updateConnectionStatus(binding.pcConnectionIndicator, 
-                                             binding.pcConnectionStatus,
-                                             uiState.isPcConnected, "PC Connection")
-                        
-                        updateConnectionStatus(binding.shimmerConnectionIndicator,
-                                             binding.shimmerConnectionStatus,
-                                             uiState.isShimmerConnected, "Shimmer")
-                        
-                        updateConnectionStatus(binding.thermalConnectionIndicator,
-                                             binding.thermalConnectionStatus,
-                                             uiState.isThermalConnected, "Thermal Camera")
-                        
-                        // Update recording state
-                        binding.startRecordingButton.isEnabled = uiState.canStartRecording
-                        binding.stopRecordingButton.isEnabled = uiState.canStopRecording
+                        updateUI(uiState)
                     }
                 }
             }
@@ -148,17 +209,124 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    private fun updateConnectionStatus(indicator: android.view.View, 
-                                     textView: com.google.android.material.textview.MaterialTextView,
-                                     connected: Boolean, deviceName: String) {
-        val color = if (connected) {
-            getColor(R.color.status_connected)
-        } else {
-            getColor(R.color.status_disconnected)
+    private fun updateUI(uiState: MainUiState) {
+        // Update recording controls
+        updateRecordingControls(uiState)
+        
+        // Update device status indicators
+        updateDeviceStatus(uiState)
+        
+        // Update system status
+        updateSystemStatus(uiState)
+        
+        // Update storage info
+        updateStorageInfo(uiState)
+        
+        // Update toolbar subtitle
+        updateToolbarSubtitle(uiState)
+    }
+
+    private fun updateRecordingControls(uiState: MainUiState) {
+        // Record button
+        binding.recordButton.isEnabled = uiState.canStartRecording || uiState.canStopRecording
+        binding.recordButton.text = if (uiState.isRecording) "Stop Recording" else "Start Recording"
+        
+        // Recording status
+        binding.recordingStatusText.text = when {
+            uiState.isRecording -> "● Recording - ${formatDuration(uiState.recordingDuration)}"
+            uiState.isReadyToRecord -> "Ready to record"
+            else -> "Not ready"
         }
         
-        indicator.setBackgroundColor(color)
-        textView.text = "$deviceName: ${if (connected) "Connected" else "Disconnected"}"
+        // Camera controls
+        binding.cameraSwitchButton.isEnabled = !uiState.isRecording
+    }
+
+    private fun updateDeviceStatus(uiState: MainUiState) {
+        // PC connection
+        updateConnectionButton(binding.pcConnectionButton, uiState.isPcConnected, "PC")
+        binding.pcStatusText.text = if (uiState.isPcConnected) "Connected" else "Disconnected"
+        
+        // Shimmer connection
+        updateConnectionButton(binding.shimmerConnectionButton, uiState.isShimmerConnected, "Shimmer")
+        binding.shimmerStatusText.text = if (uiState.isShimmerConnected) {
+            "Connected${if (uiState.shimmerBatteryLevel > 0) " (${uiState.shimmerBatteryLevel}%)" else ""}"
+        } else "Disconnected"
+        
+        // Thermal connection
+        updateConnectionButton(binding.thermalConnectionButton, uiState.isThermalConnected, "Thermal")
+        binding.thermalStatusText.text = if (uiState.isThermalConnected) {
+            "Connected${uiState.thermalTemperature?.let { " (${String.format("%.1f°C", it)})" } ?: ""}"
+        } else "Disconnected"
+        
+        // Network status
+        binding.networkStatusText.text = if (uiState.isNetworkConnected) {
+            "Network Connected${if (uiState.networkAddress.isNotEmpty()) " (${uiState.networkAddress})" else ""}"
+        } else "Network Disconnected"
+    }
+
+    private fun updateConnectionButton(button: com.google.android.material.button.MaterialButton, 
+                                      isConnected: Boolean, deviceName: String) {
+        button.text = if (isConnected) "Disconnect $deviceName" else "Connect $deviceName"
+        button.setIconResource(if (isConnected) R.drawable.ic_disconnect else R.drawable.ic_connect)
+    }
+
+    private fun updateSystemStatus(uiState: MainUiState) {
+        binding.systemStatusText.text = when (uiState.systemHealthStatus) {
+            SystemHealthStatus.INITIALIZING -> "Initializing..."
+            SystemHealthStatus.READY -> "System Ready"
+            SystemHealthStatus.PARTIAL_CONNECTION -> "Partial Connection"
+            SystemHealthStatus.DISCONNECTED -> "Disconnected"
+            SystemHealthStatus.RECORDING -> "Recording Active"
+            SystemHealthStatus.ERROR -> "System Error"
+        }
+        
+        // Update calibration status
+        binding.calibrationStatusText.text = when {
+            uiState.isCalibrationRunning -> "Calibrating..."
+            uiState.isCameraCalibrated && uiState.isThermalCalibrated && uiState.isShimmerCalibrated -> "All Calibrated"
+            uiState.isCameraCalibrated || uiState.isThermalCalibrated || uiState.isShimmerCalibrated -> "Partially Calibrated"
+            else -> "Not Calibrated"
+        }
+        
+        binding.calibrationButton.isEnabled = uiState.canRunCalibration
+    }
+
+    private fun updateStorageInfo(uiState: MainUiState) {
+        val usedPercentage = uiState.storageUsagePercentage
+        
+        binding.storageProgressBar.progress = usedPercentage
+        binding.storageText.text = "${formatBytes(uiState.storageAvailable)} available"
+        binding.sessionCountText.text = "${uiState.sessionCount} sessions, ${uiState.fileCount} files"
+        
+        // Transfer status
+        binding.transferButton.isEnabled = !uiState.isTransferring && uiState.fileCount > 0
+        binding.transferStatusText.text = if (uiState.isTransferring) "Transferring..." else "Ready"
+    }
+
+    private fun updateToolbarSubtitle(uiState: MainUiState) {
+        val connectedDevices = listOfNotNull(
+            if (uiState.isPcConnected) "PC" else null,
+            if (uiState.isShimmerConnected) "Shimmer" else null,
+            if (uiState.isThermalConnected) "Thermal" else null,
+            if (uiState.isGsrConnected) "GSR" else null
+        )
+        
+        binding.toolbar.subtitle = when {
+            uiState.isRecording -> "● Recording..."
+            connectedDevices.isNotEmpty() -> "${connectedDevices.size} devices connected"
+            else -> "No devices connected"
+        }
+    }
+
+    private fun formatDuration(durationMs: Long): String {
+        val seconds = durationMs / 1000
+        val minutes = seconds / 60
+        val hours = minutes / 60
+        return when {
+            hours > 0 -> String.format("%d:%02d:%02d", hours, minutes % 60, seconds % 60)
+            else -> String.format("%d:%02d", minutes, seconds % 60)
+        }
     }
 
     private fun navigateToActivity(activityClass: Class<*>) {
@@ -167,11 +335,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         } catch (e: Exception) {
             showError("Navigation failed: ${e.message}")
         }
-    }
-
-    private fun navigateToFragment(fragmentType: String) {
-        // For now, show a message - fragments can be implemented later if needed
-        showMessage("$fragmentType feature coming soon")
     }
 
     private fun runDiagnostics() {
@@ -183,9 +346,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 appendLine("PC Connected: ${currentState.isPcConnected}")
                 appendLine("Shimmer Connected: ${currentState.isShimmerConnected}")
                 appendLine("Thermal Connected: ${currentState.isThermalConnected}")
+                appendLine("GSR Connected: ${currentState.isGsrConnected}")
+                appendLine("Network Connected: ${currentState.isNetworkConnected}")
                 appendLine("Recording Active: ${currentState.isRecording}")
                 appendLine("System Status: ${currentState.systemHealthStatus}")
                 appendLine("Permissions OK: ${checkPermissions()}")
+                appendLine("Storage Available: ${formatBytes(currentState.storageAvailable)}")
                 appendLine("========================")
             }
             
@@ -197,33 +363,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+    private fun formatBytes(bytes: Long): String {
+        return when {
+            bytes >= 1024 * 1024 * 1024 -> String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0))
+            bytes >= 1024 * 1024 -> String.format("%.1f MB", bytes / (1024.0 * 1024.0))
+            bytes >= 1024 -> String.format("%.1f KB", bytes / 1024.0)
+            else -> "$bytes B"
+        }
+    }
+
     private fun checkPermissions(): Boolean {
         // Simple permission check - can be expanded
         return checkSelfPermission(android.Manifest.permission.CAMERA) == 
                android.content.pm.PackageManager.PERMISSION_GRANTED
-    }
-
-    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.nav_recording -> {
-                // Already on main screen
-            }
-            R.id.nav_devices -> navigateToFragment("devices")
-            R.id.nav_calibration -> navigateToFragment("calibration")
-            R.id.nav_files -> navigateToActivity(FileViewActivity::class.java)
-            R.id.nav_settings -> navigateToActivity(SettingsActivity::class.java)
-            R.id.nav_network_config -> navigateToActivity(NetworkConfigActivity::class.java)
-            R.id.nav_shimmer_config -> navigateToActivity(ShimmerConfigActivity::class.java)
-            R.id.nav_diagnostics -> runDiagnostics()
-            R.id.nav_about -> showAbout()
-        }
-        
-        binding.drawerLayout.closeDrawer(GravityCompat.START)
-        return true
-    }
-
-    private fun showAbout() {
-        showMessage("Multi-Sensor Recording System v${BuildConfig.VERSION_NAME}")
     }
 
     private fun showMessage(message: String) {
@@ -233,13 +385,5 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun showError(error: String) {
         Toast.makeText(this, "Error: $error", Toast.LENGTH_LONG).show()
         android.util.Log.e("MainActivityMD3", error)
-    }
-
-    override fun onBackPressed() {
-        if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            binding.drawerLayout.closeDrawer(GravityCompat.START)
-        } else {
-            super.onBackPressed()
-        }
     }
 }

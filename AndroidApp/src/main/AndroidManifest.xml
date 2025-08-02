@@ -104,6 +104,54 @@
                 android:value=".MainActivity" />
         </activity>
 
+        <!-- About Activity -->
+        <activity
+            android:name=".ui.AboutActivity"
+            android:exported="false"
+            android:label="About"
+            android:theme="@style/Theme.AppCompat.DayNight"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+
+        <!-- Calibration Activity -->
+        <activity
+            android:name=".ui.CalibrationActivity"
+            android:exported="false"
+            android:label="Calibration"
+            android:theme="@style/Theme.AppCompat.DayNight"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+
+        <!-- Devices Activity -->
+        <activity
+            android:name=".ui.DevicesActivity"
+            android:exported="false"
+            android:label="Device Management"
+            android:theme="@style/Theme.AppCompat.DayNight"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+
+        <!-- Diagnostics Activity -->
+        <activity
+            android:name=".ui.DiagnosticsActivity"
+            android:exported="false"
+            android:label="Diagnostics"
+            android:theme="@style/Theme.AppCompat.DayNight"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+
         <!-- Recording Service for foreground multi-sensor recording -->
         <service
             android:name=".service.RecordingService"

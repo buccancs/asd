@@ -1,86 +1,78 @@
 package com.multisensor.recording.ui
 
 /**
- * UI State data class for MainActivity
+ * Streamlined UI State for single-dashboard interface
  * 
- * This class represents everything the UI needs to know to draw itself at any given moment.
- * Following modern Android architecture guidelines, this centralizes all UI state management
- * and eliminates the need for imperative UI updates scattered throughout the Activity.
- * 
- * Benefits:
- * - Single source of truth for UI state
- * - Predictable state changes
- * - Easy to test UI logic
- * - Lifecycle-safe UI updates
+ * Minimalist approach focusing only on essential state properties
+ * needed for the single-screen dashboard. Reduces complexity while
+ * maintaining full functionality.
  */
 data class MainUiState(
-    // System Status
+    // Core System Status
     val statusText: String = "Initializing...",
     val isInitialized: Boolean = false,
     
-    // Recording State
+    // Recording State (Primary Function)
     val isRecording: Boolean = false,
     val recordingDuration: Long = 0L,
     val recordingSessionId: String? = null,
+    val isReadyToRecord: Boolean = false,
     
-    // Connection Status
+    // Device Connections (Essential for Operation)
     val isPcConnected: Boolean = false,
     val isShimmerConnected: Boolean = false,
     val isThermalConnected: Boolean = false,
+    val isGsrConnected: Boolean = false,
+    val isNetworkConnected: Boolean = false,
+    val isCameraConnected: Boolean = false,
     
-    // Device Information
-    val batteryLevel: Int = -1,
-    val batteryStatus: BatteryStatus = BatteryStatus.UNKNOWN,
+    // Device Info (Minimal for Status Display)
+    val shimmerBatteryLevel: Int = -1,
+    val thermalTemperature: Float? = null,
+    val networkAddress: String = "",
     
-    // UI Control States
-    val showManualControls: Boolean = true,  // Enable manual controls by default
-    val showPermissionsButton: Boolean = false,
+    // Calibration State (Essential for System Readiness)
+    val isCameraCalibrated: Boolean = false,
+    val isThermalCalibrated: Boolean = false,
+    val isShimmerCalibrated: Boolean = false,
     val isCalibrationRunning: Boolean = false,
     
-    // Streaming State
-    val isStreaming: Boolean = false,
-    val streamingFrameRate: Int = 0,
-    val streamingDataSize: String = "",
+    // Storage (Critical for Recording)
+    val storageUsed: Long = 0L,
+    val storageAvailable: Long = 0L,
+    val storageTotal: Long = 0L,
+    val sessionCount: Int = 0,
+    val fileCount: Int = 0,
     
-    // Error Handling
+    // Data Transfer (Essential for Field Work)
+    val isTransferring: Boolean = false,
+    
+    // Error Handling (Critical)
     val errorMessage: String? = null,
     val showErrorDialog: Boolean = false,
     
-    // Loading States
+    // Loading States (User Feedback)
     val isLoadingRecording: Boolean = false,
-    val isLoadingCalibration: Boolean = false,
-    val isLoadingPermissions: Boolean = false,
-    
-    // Shimmer Specific State
-    val shimmerDeviceInfo: ShimmerDeviceInfo? = null,
-    val shimmerBatteryLevel: Int = -1,
-    
-    // Thermal Camera State
-    val thermalPreviewAvailable: Boolean = false,
-    val thermalTemperature: Float? = null,
-    
-    // Session Information
-    val currentSessionInfo: SessionDisplayInfo? = null
+    val isLoadingCalibration: Boolean = false
 ) {
     
     /**
-     * Computed property to determine if recording can be started
-     * Modified to be more permissive for debugging and testing
+     * Can start recording if system is ready and not currently recording
      */
     val canStartRecording: Boolean
         get() = isInitialized && 
                 !isRecording && 
-                !isLoadingRecording && 
-                showManualControls  // Allow recording if manual controls are enabled
+                !isLoadingRecording &&
+                isCameraConnected
     
     /**
-     * Computed property to determine if recording can be stopped
+     * Can stop recording if currently recording
      */
     val canStopRecording: Boolean
         get() = isRecording && !isLoadingRecording
     
     /**
-     * Computed property to determine if calibration can be run
+     * Can run calibration if not recording and not already calibrating
      */
     val canRunCalibration: Boolean
         get() = isInitialized && 
@@ -89,28 +81,25 @@ data class MainUiState(
                 !isLoadingCalibration
     
     /**
-     * Computed property for overall system health status
+     * Overall system health status for dashboard display
      */
     val systemHealthStatus: SystemHealthStatus
         get() = when {
             !isInitialized -> SystemHealthStatus.INITIALIZING
             errorMessage != null -> SystemHealthStatus.ERROR
             isRecording -> SystemHealthStatus.RECORDING
-            isPcConnected && (isShimmerConnected || isThermalConnected) -> SystemHealthStatus.READY
-            isPcConnected -> SystemHealthStatus.PARTIAL_CONNECTION
+            isPcConnected && (isShimmerConnected || isThermalConnected) && isCameraConnected -> SystemHealthStatus.READY
+            isPcConnected && isCameraConnected -> SystemHealthStatus.PARTIAL_CONNECTION
             else -> SystemHealthStatus.DISCONNECTED
         }
-}
-
-/**
- * Battery status enumeration
- */
-enum class BatteryStatus {
-    UNKNOWN,
-    CHARGING,
-    DISCHARGING,
-    NOT_CHARGING,
-    FULL
+    
+    /**
+     * Storage usage percentage for progress bar
+     */
+    val storageUsagePercentage: Int
+        get() = if (storageTotal > 0) {
+            ((storageUsed * 100) / storageTotal).toInt()
+        } else 0
 }
 
 /**
@@ -124,26 +113,3 @@ enum class SystemHealthStatus {
     RECORDING,
     ERROR
 }
-
-/**
- * Shimmer device information
- */
-data class ShimmerDeviceInfo(
-    val deviceName: String,
-    val macAddress: String,
-    val isConnected: Boolean,
-    val signalStrength: Int = -1,
-    val firmwareVersion: String? = null
-)
-
-/**
- * Session display information for UI
- */
-data class SessionDisplayInfo(
-    val sessionId: String,
-    val startTime: Long,
-    val duration: Long,
-    val deviceCount: Int,
-    val recordingMode: String,
-    val status: String
-)

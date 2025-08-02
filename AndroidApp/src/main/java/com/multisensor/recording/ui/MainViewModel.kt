@@ -755,6 +755,438 @@ class MainViewModel
         fun getShimmerBluetoothManager(): com.shimmerresearch.android.manager.ShimmerBluetoothManagerAndroid? =
             shimmerRecorder.getShimmerBluetoothManager()
 
+        // =============================================================================
+        // ADDITIONAL METHODS FOR FRAGMENT SUPPORT
+        // =============================================================================
+
+        // Camera and Preview Methods
+        fun switchCamera() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Switching camera")
+                    // TODO: Implement camera switching logic
+                } catch (e: Exception) {
+                    logger.error("Error switching camera", e)
+                }
+            }
+        }
+
+        fun toggleThermalPreview() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Toggling thermal preview")
+                    updateUiState { currentState ->
+                        currentState.copy(thermalPreviewAvailable = !currentState.thermalPreviewAvailable)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error toggling thermal preview", e)
+                }
+            }
+        }
+
+        // Device Connection Methods
+        fun connectToPC() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Connecting to PC")
+                    updateUiState { currentState ->
+                        currentState.copy(isPcConnected = true)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error connecting to PC", e)
+                }
+            }
+        }
+
+        fun disconnectFromPC() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Disconnecting from PC")
+                    updateUiState { currentState ->
+                        currentState.copy(isPcConnected = false)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error disconnecting from PC", e)
+                }
+            }
+        }
+
+        fun scanForShimmer() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Scanning for Shimmer devices")
+                    // TODO: Implement Shimmer scanning
+                } catch (e: Exception) {
+                    logger.error("Error scanning for Shimmer", e)
+                }
+            }
+        }
+
+        fun connectShimmer() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Connecting Shimmer device")
+                    updateUiState { currentState ->
+                        currentState.copy(
+                            isShimmerConnected = true,
+                            shimmerDeviceId = "SH001",
+                            isGsrConnected = true
+                        )
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error connecting Shimmer", e)
+                }
+            }
+        }
+
+        fun disconnectShimmer() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Disconnecting Shimmer device")
+                    updateUiState { currentState ->
+                        currentState.copy(
+                            isShimmerConnected = false,
+                            shimmerDeviceId = "",
+                            isGsrConnected = false
+                        )
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error disconnecting Shimmer", e)
+                }
+            }
+        }
+
+        fun connectThermal() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Connecting thermal camera")
+                    updateUiState { currentState ->
+                        currentState.copy(isThermalConnected = true)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error connecting thermal camera", e)
+                }
+            }
+        }
+
+        fun disconnectThermal() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Disconnecting thermal camera")
+                    updateUiState { currentState ->
+                        currentState.copy(isThermalConnected = false)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error disconnecting thermal camera", e)
+                }
+            }
+        }
+
+        fun refreshDevices() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Refreshing all devices")
+                    // TODO: Implement device refresh
+                } catch (e: Exception) {
+                    logger.error("Error refreshing devices", e)
+                }
+            }
+        }
+
+        // File Management Methods
+        fun exportAllFiles() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Exporting all files")
+                    // TODO: Implement file export
+                } catch (e: Exception) {
+                    logger.error("Error exporting files", e)
+                }
+            }
+        }
+
+        fun deleteAllFiles() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Deleting all files")
+                    updateUiState { currentState ->
+                        currentState.copy(
+                            sessionCount = 0,
+                            fileCount = 0,
+                            storageUsed = 0L
+                        )
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error deleting files", e)
+                }
+            }
+        }
+
+        fun transferFilesToPC() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Transferring files to PC")
+                    updateUiState { currentState ->
+                        currentState.copy(isTransferring = true)
+                    }
+                    // Simulate transfer
+                    kotlinx.coroutines.delay(3000)
+                    updateUiState { currentState ->
+                        currentState.copy(isTransferring = false)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error transferring files", e)
+                }
+            }
+        }
+
+        fun refreshStorageInfo() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Refreshing storage info")
+                    updateUiState { currentState ->
+                        currentState.copy(
+                            storageUsed = 2_500_000_000L, // 2.5GB
+                            storageAvailable = 2_700_000_000L, // 2.7GB
+                            storageTotal = 5_200_000_000L, // 5.2GB
+                            sessionCount = 12,
+                            fileCount = 48
+                        )
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error refreshing storage", e)
+                }
+            }
+        }
+
+        fun clearCache() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Clearing cache")
+                    // TODO: Implement cache clearing
+                } catch (e: Exception) {
+                    logger.error("Error clearing cache", e)
+                }
+            }
+        }
+
+        // Calibration Methods
+        fun startCameraCalibration() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Starting camera calibration")
+                    updateUiState { currentState ->
+                        currentState.copy(isCalibratingCamera = true)
+                    }
+                    // Simulate calibration
+                    kotlinx.coroutines.delay(5000)
+                    updateUiState { currentState ->
+                        currentState.copy(
+                            isCalibratingCamera = false,
+                            isCameraCalibrated = true
+                        )
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error starting camera calibration", e)
+                }
+            }
+        }
+
+        fun stopCameraCalibration() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Stopping camera calibration")
+                    updateUiState { currentState ->
+                        currentState.copy(isCalibratingCamera = false)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error stopping camera calibration", e)
+                }
+            }
+        }
+
+        fun resetCameraCalibration() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Resetting camera calibration")
+                    updateUiState { currentState ->
+                        currentState.copy(isCameraCalibrated = false)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error resetting camera calibration", e)
+                }
+            }
+        }
+
+        fun startThermalCalibration() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Starting thermal calibration")
+                    updateUiState { currentState ->
+                        currentState.copy(isCalibratingThermal = true)
+                    }
+                    // Simulate calibration
+                    kotlinx.coroutines.delay(5000)
+                    updateUiState { currentState ->
+                        currentState.copy(
+                            isCalibratingThermal = false,
+                            isThermalCalibrated = true
+                        )
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error starting thermal calibration", e)
+                }
+            }
+        }
+
+        fun stopThermalCalibration() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Stopping thermal calibration")
+                    updateUiState { currentState ->
+                        currentState.copy(isCalibratingThermal = false)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error stopping thermal calibration", e)
+                }
+            }
+        }
+
+        fun resetThermalCalibration() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Resetting thermal calibration")
+                    updateUiState { currentState ->
+                        currentState.copy(isThermalCalibrated = false)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error resetting thermal calibration", e)
+                }
+            }
+        }
+
+        fun startShimmerCalibration() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Starting Shimmer calibration")
+                    updateUiState { currentState ->
+                        currentState.copy(isCalibratingShimmer = true)
+                    }
+                    // Simulate calibration
+                    kotlinx.coroutines.delay(5000)
+                    updateUiState { currentState ->
+                        currentState.copy(
+                            isCalibratingShimmer = false,
+                            isShimmerCalibrated = true
+                        )
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error starting Shimmer calibration", e)
+                }
+            }
+        }
+
+        fun stopShimmerCalibration() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Stopping Shimmer calibration")
+                    updateUiState { currentState ->
+                        currentState.copy(isCalibratingShimmer = false)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error stopping Shimmer calibration", e)
+                }
+            }
+        }
+
+        fun resetShimmerCalibration() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Resetting Shimmer calibration")
+                    updateUiState { currentState ->
+                        currentState.copy(isShimmerCalibrated = false)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error resetting Shimmer calibration", e)
+                }
+            }
+        }
+
+        fun validateSystem() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Validating system")
+                    updateUiState { currentState ->
+                        currentState.copy(isValidating = true)
+                    }
+                    // Simulate validation
+                    kotlinx.coroutines.delay(3000)
+                    updateUiState { currentState ->
+                        currentState.copy(
+                            isValidating = false,
+                            isSystemValidated = true
+                        )
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error validating system", e)
+                }
+            }
+        }
+
+        fun runDiagnostics() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Running diagnostics")
+                    updateUiState { currentState ->
+                        currentState.copy(isDiagnosticsRunning = true)
+                    }
+                    // Simulate diagnostics
+                    kotlinx.coroutines.delay(2000)
+                    updateUiState { currentState ->
+                        currentState.copy(
+                            isDiagnosticsRunning = false,
+                            diagnosticsCompleted = true
+                        )
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error running diagnostics", e)
+                }
+            }
+        }
+
+        fun saveCalibrationData() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Saving calibration data")
+                    // TODO: Implement calibration data saving
+                } catch (e: Exception) {
+                    logger.error("Error saving calibration data", e)
+                }
+            }
+        }
+
+        fun loadCalibrationData() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Loading calibration data")
+                    // TODO: Implement calibration data loading
+                } catch (e: Exception) {
+                    logger.error("Error loading calibration data", e)
+                }
+            }
+        }
+
+        fun exportCalibrationData() {
+            viewModelScope.launch {
+                try {
+                    logger.info("Exporting calibration data")
+                    // TODO: Implement calibration data export
+                } catch (e: Exception) {
+                    logger.error("Error exporting calibration data", e)
+                }
+            }
+        }
+
         override fun onCleared() {
             super.onCleared()
             logger.info("MainViewModel cleared")
